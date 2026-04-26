@@ -4,7 +4,7 @@ import { renderWithRouter, mockAuthValue } from '@/test/utils';
 import SignupPage, {
   getPasswordCriteria,
   getPasswordStrength,
-} from './Signup';
+} from '@/routes/auth/Signup';
 
 // ── Mocks ─────────────────────────────────────────────────────
 const mockNavigate = vi.fn();
@@ -219,7 +219,6 @@ describe('SignupPage — step 1: credentials', () => {
       await user.type(screen.getByLabelText(/confirm password/i), VALID_PASSWORD);
 
       const confirmWrapper = screen.getByLabelText(/confirm password/i).parentElement!;
-      // Check icon (SVG) should be present inside the wrapper
       expect(confirmWrapper.querySelector('svg')).toBeInTheDocument();
     });
 

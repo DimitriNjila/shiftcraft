@@ -1,7 +1,7 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithRouter, mockAuthValue } from '@/test/utils';
-import LoginPage from './Login';
+import LoginPage from '@/routes/auth/Login';
 
 // ── Mocks ─────────────────────────────────────────────────────
 const mockNavigate = vi.fn();

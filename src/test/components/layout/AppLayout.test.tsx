@@ -1,7 +1,7 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithRouter, mockAuthValue } from '@/test/utils';
-import AppLayout from './AppLayout';
+import AppLayout from '@/components/layout/AppLayout';
 
 // ── Mocks ─────────────────────────────────────────────────────
 vi.mock('react-router-dom', async () => {
@@ -48,10 +48,8 @@ describe('AppLayout', () => {
 
   it('shows the dark overlay when the menu button is clicked', async () => {
     const { user } = setup();
-    // No overlay before opening
     expect(screen.queryByTestId('mobile-overlay')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /open navigation/i }));
-    // Overlay appears after opening
     expect(screen.queryByTestId('mobile-overlay')).toBeInTheDocument();
   });
 
@@ -63,7 +61,6 @@ describe('AppLayout', () => {
     expect(overlay).toBeInTheDocument();
     await user.click(overlay!);
 
-    // Overlay removed once sidebar closes
     expect(screen.queryByTestId('mobile-overlay')).not.toBeInTheDocument();
   });
 });

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ErrorMessage } from './ErrorMessage';
+import { ErrorMessage } from '@/components/ui/ErrorMessage';
 
 describe('ErrorMessage', () => {
   it('renders the default message when none is provided', () => {

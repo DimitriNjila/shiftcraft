@@ -1,7 +1,7 @@
 import { screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithRouter, mockAuthValue } from '@/test/utils';
-import { Sidebar, type SidebarProps } from './Sidebar';
+import { Sidebar, type SidebarProps } from '@/components/layout/Sidebar';
 
 // ── Mocks ─────────────────────────────────────────────────────
 const mockNavigate = vi.fn();

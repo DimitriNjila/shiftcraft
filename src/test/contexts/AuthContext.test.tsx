@@ -1,5 +1,5 @@
 import { render, screen, act, waitFor } from '@testing-library/react';
-import { AuthProvider, useAuth } from './AuthContext';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 
 // ── Mock the Supabase client ──────────────────────────────────
 // vi.mock() is hoisted to the top of the file, so variables used inside its

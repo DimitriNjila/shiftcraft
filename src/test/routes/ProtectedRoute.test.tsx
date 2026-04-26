@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { ProtectedRoute } from './ProtectedRoute';
+import { ProtectedRoute } from '@/routes/ProtectedRoute';
 
 // ── Mock AuthContext ──────────────────────────────────────────
 const mockUseAuth = vi.fn();
