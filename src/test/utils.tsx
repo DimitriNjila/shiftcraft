@@ -48,4 +48,6 @@ export const mockAuthValue = {
   signIn: vi.fn(),
   signUp: vi.fn(),
   signOut: vi.fn(),
+  resetPassword: vi.fn(),
+  updatePassword: vi.fn(),
 };
