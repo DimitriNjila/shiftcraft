@@ -18,6 +18,13 @@ vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
+vi.mock('@/lib/hooks/use-restaurant', () => ({
+  useRestaurant: () => ({
+    data: { id: 'r1', name: 'Test Restaurant', team_size: '6–20', onboarding_completed: true },
+    status: 'success',
+  }),
+}));
+
 // ── Helpers ───────────────────────────────────────────────────
 function setup() {
   mockUseAuth.mockReturnValue({ ...mockAuthValue });

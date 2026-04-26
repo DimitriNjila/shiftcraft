@@ -12,12 +12,7 @@ interface AuthContextValue {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signUp: (
-    email: string,
-    password: string,
-    fullName: string,
-    restaurantData?: { name: string; teamSize: string; role: string },
-  ) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -40,60 +35,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Listen for auth state changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-
-      // First sign-in after email confirmation: provision restaurant row.
-      // Restaurant data was stored in user metadata at signup time since
-      // there is no active session during email-confirmation sign-up flows.
-      if (
-        event === "SIGNED_IN" &&
-        session?.user?.user_metadata?.onboarding_pending === true
-      ) {
-        const user = session.user;
-        const meta = user.user_metadata;
-
-        const { error } = await supabase.from("restaurants").insert({
-          name: meta.restaurant_name,
-          team_size: meta.team_size,
-          owner_id: user.id,
-        });
-
-        if (!error) {
-          await supabase.auth.updateUser({
-            data: { onboarding_pending: null },
-          });
-        }
-      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (
-    email: string,
-    password: string,
-    fullName: string,
-    restaurantData?: {
-      name: string;
-      teamSize: string;
-      role: string;
-    },
-  ) => {
+  const signUp = async (email: string, password: string, fullName: string) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: {
-          full_name: fullName,
-          ...(restaurantData && {
-            restaurant_name: restaurantData.name,
-            team_size: restaurantData.teamSize,
-            role: restaurantData.role,
-            onboarding_pending: true,
-          }),
-        },
-      },
+      options: { data: { full_name: fullName } },
     });
     if (error) throw error;
   };

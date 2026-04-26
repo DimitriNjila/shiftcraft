@@ -38,13 +38,13 @@ function setup() {
 
 const VALID_PASSWORD = 'Secure@Pass1';
 
-/** Fills valid step-1 data and clicks Continue. */
-async function fillStep1AndAdvance(user: ReturnType<typeof userEvent.setup>) {
+/** Fills a valid form and clicks the submit button. */
+async function fillAndSubmit(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText(/full name/i), 'Elena Kovač');
   await user.type(screen.getByLabelText(/work email/i), 'elena@meridian.co');
   await user.type(screen.getByLabelText(/^password$/i), VALID_PASSWORD);
   await user.type(screen.getByLabelText(/confirm password/i), VALID_PASSWORD);
-  await user.click(screen.getByRole('button', { name: /continue/i }));
+  await user.click(screen.getByRole('button', { name: /start free trial/i }));
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -104,95 +104,128 @@ describe('getPasswordStrength', () => {
 });
 
 // ──────────────────────────────────────────────────────────────
-describe('SignupPage — step 1: credentials', () => {
+describe('SignupPage', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('renders name, email, password, and confirm-password fields', () => {
-    setup();
-    expect(screen.getByLabelText(/full name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/work email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument();
+  describe('form fields', () => {
+    it('renders name, email, password, and confirm-password fields', () => {
+      setup();
+      expect(screen.getByLabelText(/full name/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/work email/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument();
+    });
+
+    it('renders the submit button', () => {
+      setup();
+      expect(screen.getByRole('button', { name: /start free trial/i })).toBeInTheDocument();
+    });
   });
 
-  it('shows an error toast when full name is empty', async () => {
-    const { toast } = await import('sonner');
-    const { user } = setup();
-    await user.click(screen.getByRole('button', { name: /continue/i }));
-    expect(toast.error).toHaveBeenCalledWith('Full name is required');
+  describe('validation', () => {
+    it('shows an error toast when full name is empty', async () => {
+      const { toast } = await import('sonner');
+      const { user } = setup();
+      await user.click(screen.getByRole('button', { name: /start free trial/i }));
+      expect(toast.error).toHaveBeenCalledWith('Full name is required');
+    });
+
+    it('shows an error toast when password is too short', async () => {
+      const { toast } = await import('sonner');
+      const { user } = setup();
+      await user.type(screen.getByLabelText(/full name/i), 'Alice');
+      await user.type(screen.getByLabelText(/work email/i), 'a@test.com');
+      await user.type(screen.getByLabelText(/^password$/i), 'Short1!');
+      await user.click(screen.getByRole('button', { name: /start free trial/i }));
+      expect(toast.error).toHaveBeenCalledWith('Password must be at least 10 characters');
+    });
+
+    it('shows an error toast when password has no uppercase letter', async () => {
+      const { toast } = await import('sonner');
+      const { user } = setup();
+      await user.type(screen.getByLabelText(/full name/i), 'Alice');
+      await user.type(screen.getByLabelText(/work email/i), 'a@test.com');
+      await user.type(screen.getByLabelText(/^password$/i), 'nouppercase1!');
+      await user.click(screen.getByRole('button', { name: /start free trial/i }));
+      expect(toast.error).toHaveBeenCalledWith('Password must contain an uppercase letter');
+    });
+
+    it('shows an error toast when password has no lowercase letter', async () => {
+      const { toast } = await import('sonner');
+      const { user } = setup();
+      await user.type(screen.getByLabelText(/full name/i), 'Alice');
+      await user.type(screen.getByLabelText(/work email/i), 'a@test.com');
+      await user.type(screen.getByLabelText(/^password$/i), 'NOLOWERCASE1!');
+      await user.click(screen.getByRole('button', { name: /start free trial/i }));
+      expect(toast.error).toHaveBeenCalledWith('Password must contain a lowercase letter');
+    });
+
+    it('shows an error toast when password has no number', async () => {
+      const { toast } = await import('sonner');
+      const { user } = setup();
+      await user.type(screen.getByLabelText(/full name/i), 'Alice');
+      await user.type(screen.getByLabelText(/work email/i), 'a@test.com');
+      await user.type(screen.getByLabelText(/^password$/i), 'NoNumbers!!!');
+      await user.click(screen.getByRole('button', { name: /start free trial/i }));
+      expect(toast.error).toHaveBeenCalledWith('Password must contain a number');
+    });
+
+    it('shows an error toast when password has no special character', async () => {
+      const { toast } = await import('sonner');
+      const { user } = setup();
+      await user.type(screen.getByLabelText(/full name/i), 'Alice');
+      await user.type(screen.getByLabelText(/work email/i), 'a@test.com');
+      await user.type(screen.getByLabelText(/^password$/i), 'NoSpecial1234');
+      await user.click(screen.getByRole('button', { name: /start free trial/i }));
+      expect(toast.error).toHaveBeenCalledWith('Password must contain a special character');
+    });
+
+    it('shows an error toast when passwords do not match', async () => {
+      const { toast } = await import('sonner');
+      const { user } = setup();
+      await user.type(screen.getByLabelText(/full name/i), 'Alice');
+      await user.type(screen.getByLabelText(/work email/i), 'a@test.com');
+      await user.type(screen.getByLabelText(/^password$/i), VALID_PASSWORD);
+      await user.type(screen.getByLabelText(/confirm password/i), 'Different@Pass1');
+      await user.click(screen.getByRole('button', { name: /start free trial/i }));
+      expect(toast.error).toHaveBeenCalledWith('Passwords do not match');
+    });
   });
 
-  it('shows an error toast when password is too short', async () => {
-    const { toast } = await import('sonner');
-    const { user } = setup();
-    await user.type(screen.getByLabelText(/full name/i), 'Alice');
-    await user.type(screen.getByLabelText(/work email/i), 'a@test.com');
-    await user.type(screen.getByLabelText(/^password$/i), 'Short1!');
-    await user.click(screen.getByRole('button', { name: /continue/i }));
-    expect(toast.error).toHaveBeenCalledWith('Password must be at least 10 characters');
-  });
+  describe('successful submit', () => {
+    it('calls signUp with email, password, and full name', async () => {
+      mockAuthValue.signUp.mockResolvedValue(undefined);
+      const { user } = setup();
+      await fillAndSubmit(user);
 
-  it('shows an error toast when password has no uppercase letter', async () => {
-    const { toast } = await import('sonner');
-    const { user } = setup();
-    await user.type(screen.getByLabelText(/full name/i), 'Alice');
-    await user.type(screen.getByLabelText(/work email/i), 'a@test.com');
-    await user.type(screen.getByLabelText(/^password$/i), 'nouppercase1!');
-    await user.click(screen.getByRole('button', { name: /continue/i }));
-    expect(toast.error).toHaveBeenCalledWith('Password must contain an uppercase letter');
-  });
+      await waitFor(() =>
+        expect(mockAuthValue.signUp).toHaveBeenCalledWith(
+          'elena@meridian.co',
+          VALID_PASSWORD,
+          'Elena Kovač',
+        ),
+      );
+    });
 
-  it('shows an error toast when password has no lowercase letter', async () => {
-    const { toast } = await import('sonner');
-    const { user } = setup();
-    await user.type(screen.getByLabelText(/full name/i), 'Alice');
-    await user.type(screen.getByLabelText(/work email/i), 'a@test.com');
-    await user.type(screen.getByLabelText(/^password$/i), 'NOLOWERCASE1!');
-    await user.click(screen.getByRole('button', { name: /continue/i }));
-    expect(toast.error).toHaveBeenCalledWith('Password must contain a lowercase letter');
-  });
+    it('navigates to /login after successful sign-up', async () => {
+      mockAuthValue.signUp.mockResolvedValue(undefined);
+      const { user } = setup();
+      await fillAndSubmit(user);
 
-  it('shows an error toast when password has no number', async () => {
-    const { toast } = await import('sonner');
-    const { user } = setup();
-    await user.type(screen.getByLabelText(/full name/i), 'Alice');
-    await user.type(screen.getByLabelText(/work email/i), 'a@test.com');
-    await user.type(screen.getByLabelText(/^password$/i), 'NoNumbers!!!');
-    await user.click(screen.getByRole('button', { name: /continue/i }));
-    expect(toast.error).toHaveBeenCalledWith('Password must contain a number');
-  });
+      await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/login'));
+    });
 
-  it('shows an error toast when password has no special character', async () => {
-    const { toast } = await import('sonner');
-    const { user } = setup();
-    await user.type(screen.getByLabelText(/full name/i), 'Alice');
-    await user.type(screen.getByLabelText(/work email/i), 'a@test.com');
-    await user.type(screen.getByLabelText(/^password$/i), 'NoSpecial1234');
-    await user.click(screen.getByRole('button', { name: /continue/i }));
-    expect(toast.error).toHaveBeenCalledWith('Password must contain a special character');
-  });
+    it('shows an error toast when signUp throws', async () => {
+      const { toast } = await import('sonner');
+      mockAuthValue.signUp.mockRejectedValue(new Error('Email already registered'));
+      const { user } = setup();
+      await fillAndSubmit(user);
 
-  it('shows an error toast when passwords do not match', async () => {
-    const { toast } = await import('sonner');
-    const { user } = setup();
-    await user.type(screen.getByLabelText(/full name/i), 'Alice');
-    await user.type(screen.getByLabelText(/work email/i), 'a@test.com');
-    await user.type(screen.getByLabelText(/^password$/i), VALID_PASSWORD);
-    await user.type(screen.getByLabelText(/confirm password/i), 'Different@Pass1');
-    await user.click(screen.getByRole('button', { name: /continue/i }));
-    expect(toast.error).toHaveBeenCalledWith('Passwords do not match');
-  });
-
-  it('advances to step 2 when all step-1 data is valid', async () => {
-    const { user } = setup();
-    await fillStep1AndAdvance(user);
-    expect(screen.getByLabelText(/café or restaurant name/i)).toBeInTheDocument();
-  });
-
-  it('does not call signUp on step-1 submit', async () => {
-    const { user } = setup();
-    await fillStep1AndAdvance(user);
-    expect(mockAuthValue.signUp).not.toHaveBeenCalled();
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith('Email already registered'),
+      );
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
   });
 
   describe('strength meter', () => {
@@ -206,7 +239,6 @@ describe('SignupPage — step 1: credentials', () => {
     it('marks a criterion as met when the condition is satisfied', async () => {
       const { user } = setup();
       await user.type(screen.getByLabelText(/^password$/i), 'A');
-      // "A–Z" pill should appear as met (Check icon present alongside label)
       const pill = screen.getByText('A–Z').closest('span')!;
       expect(pill.className).toContain('bg-primary-fixed');
     });
@@ -230,74 +262,5 @@ describe('SignupPage — step 1: credentials', () => {
       const confirmWrapper = screen.getByLabelText(/confirm password/i).parentElement!;
       expect(confirmWrapper.querySelector('svg')).toBeInTheDocument();
     });
-  });
-});
-
-describe('SignupPage — step 2: café details', () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it('renders restaurant name, team size, and role fields', async () => {
-    const { user } = setup();
-    await fillStep1AndAdvance(user);
-    expect(screen.getByLabelText(/café or restaurant name/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '1–5' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /general manager/i })).toBeInTheDocument();
-  });
-
-  it('goes back to step 1 when Back is clicked', async () => {
-    const { user } = setup();
-    await fillStep1AndAdvance(user);
-    await user.click(screen.getByRole('button', { name: /back/i }));
-    expect(screen.getByLabelText(/full name/i)).toBeInTheDocument();
-  });
-
-  it('shows an error toast when restaurant name is empty', async () => {
-    const { toast } = await import('sonner');
-    const { user } = setup();
-    await fillStep1AndAdvance(user);
-    await user.click(screen.getByRole('button', { name: /start free trial/i }));
-    expect(toast.error).toHaveBeenCalledWith('Restaurant name is required');
-    expect(mockAuthValue.signUp).not.toHaveBeenCalled();
-  });
-
-  it('calls signUp with the correct credentials', async () => {
-    mockAuthValue.signUp.mockResolvedValue(undefined);
-    const { user } = setup();
-    await fillStep1AndAdvance(user);
-    await user.type(screen.getByLabelText(/café or restaurant name/i), 'Meridian Coffee');
-    await user.click(screen.getByRole('button', { name: /start free trial/i }));
-
-    await waitFor(() =>
-      expect(mockAuthValue.signUp).toHaveBeenCalledWith(
-        'elena@meridian.co',
-        VALID_PASSWORD,
-        'Elena Kovač',
-        { name: 'Meridian Coffee', teamSize: '6–20', role: 'gm' },
-      ),
-    );
-  });
-
-  it('navigates to /login after successful sign-up', async () => {
-    mockAuthValue.signUp.mockResolvedValue(undefined);
-    const { user } = setup();
-    await fillStep1AndAdvance(user);
-    await user.type(screen.getByLabelText(/café or restaurant name/i), 'Meridian Coffee');
-    await user.click(screen.getByRole('button', { name: /start free trial/i }));
-
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/login'));
-  });
-
-  it('shows an error toast when signUp throws', async () => {
-    const { toast } = await import('sonner');
-    mockAuthValue.signUp.mockRejectedValue(new Error('Email already registered'));
-    const { user } = setup();
-    await fillStep1AndAdvance(user);
-    await user.type(screen.getByLabelText(/café or restaurant name/i), 'My Café');
-    await user.click(screen.getByRole('button', { name: /start free trial/i }));
-
-    await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith('Email already registered'),
-    );
-    expect(mockNavigate).not.toHaveBeenCalled();
   });
 });

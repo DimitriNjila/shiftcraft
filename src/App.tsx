@@ -13,6 +13,7 @@ import EmployeesPage from "@/routes/employees/index";
 import SchedulesPage from "@/routes/schedules/index";
 import TemplatesPage from "@/routes/templates/index";
 import SettingsPage from "@/routes/settings/index";
+import SetupPage from "@/routes/setup/index";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,6 +41,7 @@ export default function App() {
 
             {/* Protected app routes */}
             <Route element={<ProtectedRoute />}>
+              <Route path="/setup" element={<SetupPage />} />
               <Route element={<AppLayout />}>
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/employees" element={<EmployeesPage />} />
@@ -49,7 +51,7 @@ export default function App() {
               </Route>
             </Route>
 
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </BrowserRouter>
 

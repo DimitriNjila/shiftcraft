@@ -93,7 +93,6 @@ function EditorialPanel() {
 export default function LoginPage() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);

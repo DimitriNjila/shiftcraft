@@ -26,7 +26,6 @@ export function EmployeeModal({
   const [role, setRole] = useState<Role>((employee?.role as Role) ?? "Server");
   const [error, setError] = useState("");
 
-  // Re-seed when employee changes (shouldn't happen in practice, but defensive)
   useEffect(() => {
     setName(employee?.name ?? "");
     setRole((employee?.role as Role) ?? "Server");
@@ -45,16 +44,27 @@ export function EmployeeModal({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-panel" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-panel"
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <span className="label-md">{isEditing ? "Edit" : "New"} employee</span>
+            <span className="label-md">
+              {isEditing ? "Edit" : "New"} employee
+            </span>
             <h2 className="headline-md mt-0.5">
               {isEditing ? "Update details" : "Add to your team"}
             </h2>
           </div>
-          <button onClick={onClose} className="btn-icon btn-ghost" aria-label="Close">
+          <button
+            onClick={onClose}
+            className="btn-icon btn-ghost"
+            aria-label="Close"
+          >
             <X size={17} />
           </button>
         </div>
@@ -108,7 +118,11 @@ export function EmployeeModal({
 
           {/* Actions */}
           <div className="flex gap-2 mt-2">
-            <button type="button" onClick={onClose} className="btn btn-secondary py-2.5 px-4 text-sm">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn btn-secondary py-2.5 px-4 text-sm"
+            >
               Cancel
             </button>
             <button
