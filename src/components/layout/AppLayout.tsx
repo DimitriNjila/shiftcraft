@@ -10,9 +10,13 @@ export default function AppLayout() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { data: restaurant, status: restaurantStatus, refetch } = useRestaurant();
+  const {
+    data: restaurant,
+    status: restaurantStatus,
+    refetch,
+  } = useRestaurant();
 
-  if (restaurantStatus === 'pending') {
+  if (restaurantStatus === "pending") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size={28} />
@@ -20,10 +24,13 @@ export default function AppLayout() {
     );
   }
 
-  if (restaurantStatus === 'error') {
+  if (restaurantStatus === "error") {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <ErrorMessage message="Failed to load workspace" onRetry={() => refetch()} />
+        <ErrorMessage
+          message="Failed to load workspace"
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }
@@ -44,10 +51,7 @@ export default function AppLayout() {
         />
       )}
 
-      <div
-        className="app-shell"
-        data-sidebar={collapsed ? "rail" : undefined}
-      >
+      <div className="app-shell" data-sidebar={collapsed ? "rail" : undefined}>
         <Sidebar
           collapsed={collapsed}
           onToggleCollapse={() => setCollapsed((c) => !c)}
