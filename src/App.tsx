@@ -11,6 +11,7 @@ import ResetPasswordConfirmPage from "@/routes/auth/ResetPasswordConfirm";
 import DashboardPage from "@/routes/dashboard/index";
 import EmployeesPage from "@/routes/employees/index";
 import SchedulesPage from "@/routes/schedules/index";
+import ScheduleDetailPage from "@/routes/schedules/detail";
 import TemplatesPage from "@/routes/templates/index";
 import SettingsPage from "@/routes/settings/index";
 import SetupPage from "@/routes/setup/index";
@@ -46,6 +47,7 @@ export default function App() {
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/employees" element={<EmployeesPage />} />
                 <Route path="/schedules" element={<SchedulesPage />} />
+                <Route path="/schedules/:id" element={<ScheduleDetailPage />} />
                 <Route path="/templates" element={<TemplatesPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>

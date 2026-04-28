@@ -25,5 +25,7 @@ export function useRestaurant() {
       return data as Restaurant;
     },
     enabled: !!user,
+    retry: 3,
+    gcTime: 1000 * 60 * 30,
   });
 }

@@ -3,16 +3,15 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { useRestaurant } from "@/lib/hooks/use-restaurant";
 
 export default function AppLayout() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { data: restaurant, status: restaurantStatus } = useRestaurant();
+  const { data: restaurant, status: restaurantStatus, refetch } = useRestaurant();
 
-  // status === 'pending' covers both "not yet fetched" and "fetching" —
-  // we must wait for a real result before deciding whether to show setup.
   if (restaurantStatus === 'pending') {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -21,7 +20,15 @@ export default function AppLayout() {
     );
   }
 
-  if (!restaurant?.onboarding_completed) {
+  if (restaurantStatus === 'error') {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <ErrorMessage message="Failed to load workspace" onRetry={() => refetch()} />
+      </div>
+    );
+  }
+
+  if (!restaurant.onboarding_completed) {
     return <Navigate to="/setup" replace />;
   }
 
