@@ -1,0 +1,75 @@
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { getWeekRangeLabel, getWeekNumber } from '@/lib/utils/dates';
+import type { Schedule } from '@/lib/types/schedule';
+
+interface WeekNavProps {
+  monday: Date;
+  schedule: Schedule | undefined;
+  onPrev: () => void;
+  onNext: () => void;
+  onToday: () => void;
+  isCurrentWeek: boolean;
+}
+
+export function WeekNav({ monday, schedule, onPrev, onNext, onToday, isCurrentWeek }: WeekNavProps) {
+  const label = getWeekRangeLabel(monday);
+  const weekNum = getWeekNumber(monday);
+  const year = monday.getFullYear();
+
+  return (
+    <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onPrev}
+            className="btn-icon btn-ghost"
+            aria-label="Previous week"
+          >
+            <ChevronLeft size={17} />
+          </button>
+
+          <div className="text-center min-w-[140px]">
+            <p className="headline-sm">{label}</p>
+            <p className="label-md text-on-surface-muted" style={{ fontSize: 11 }}>
+              Week {weekNum} · {year}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onNext}
+            className="btn-icon btn-ghost"
+            aria-label="Next week"
+          >
+            <ChevronRight size={17} />
+          </button>
+        </div>
+
+        {!isCurrentWeek && (
+          <button type="button" onClick={onToday} className="btn btn-ghost text-sm">
+            Today
+          </button>
+        )}
+      </div>
+
+      {schedule && (
+        <div className="flex items-center gap-5">
+          <Stat label="SHIFTS" value={String(schedule.total_shifts)} />
+          <Stat label="HOURS" value={String(schedule.total_hours)} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="text-right">
+      <p className="label-md text-on-surface-muted" style={{ fontSize: 10 }}>
+        {label}
+      </p>
+      <p className="headline-sm mono">{value}</p>
+    </div>
+  );
+}

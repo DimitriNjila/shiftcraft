@@ -14,6 +14,11 @@ export const schedulesApi = {
     return data;
   },
 
+  getById: async (id: string): Promise<Schedule> => {
+    const { data } = await apiClient.get(`/schedules/${id}`);
+    return data;
+  },
+
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/schedules/${id}`);
   },
