@@ -36,7 +36,8 @@ const ROLE_STYLE: Record<
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  if (parts.length >= 2)
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   return name.slice(0, 2).toUpperCase();
 }
 
@@ -73,7 +74,11 @@ export interface EmployeeCardProps {
   onDelete: (employee: Employee) => void;
 }
 
-export function EmployeeCard({ employee, onEdit, onDelete }: EmployeeCardProps) {
+export function EmployeeCard({
+  employee,
+  onEdit,
+  onDelete,
+}: EmployeeCardProps) {
   const style = ROLE_STYLE[employee.role] ?? ROLE_STYLE.Server;
   const initials = getInitials(employee.name);
 
@@ -89,6 +94,9 @@ export function EmployeeCard({ employee, onEdit, onDelete }: EmployeeCardProps) 
         <div className="flex-1 min-w-0">
           <p className="title-sm truncate">{employee.name}</p>
           <p className="body-sm text-on-surface-muted">{employee.role}</p>
+          <p className="body-sm text-on-surface-muted">
+            Rate: ${employee.salary}
+          </p>
         </div>
       </div>
 

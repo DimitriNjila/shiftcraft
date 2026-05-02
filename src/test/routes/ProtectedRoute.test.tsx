@@ -20,7 +20,7 @@ function renderProtectedRoute() {
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<div>Protected content</div>} />
         </Route>
-        <Route path="/signup" element={<div>Signup page</div>} />
+        <Route path="/login" element={<div>Login page</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -35,10 +35,10 @@ describe('ProtectedRoute', () => {
     expect(screen.queryByText('Protected content')).not.toBeInTheDocument();
   });
 
-  it('redirects to /signup when there is no session', () => {
+  it('redirects to /login when there is no session', () => {
     mockUseAuth.mockReturnValue({ session: null, loading: false });
     renderProtectedRoute();
-    expect(screen.getByText('Signup page')).toBeInTheDocument();
+    expect(screen.getByText('Login page')).toBeInTheDocument();
     expect(screen.queryByText('Protected content')).not.toBeInTheDocument();
   });
 

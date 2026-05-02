@@ -22,7 +22,12 @@ export default function EmployeesPage() {
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant();
   const restaurantId = restaurant?.id;
 
-  const { data: employees, isLoading, error, refetch } = useEmployees(restaurantId);
+  const {
+    data: employees,
+    isLoading,
+    error,
+    refetch,
+  } = useEmployees(restaurantId);
   const createEmployee = useCreateEmployee();
   const updateEmployee = useUpdateEmployee();
   const deleteEmployee = useDeleteEmployee();
@@ -55,10 +60,14 @@ export default function EmployeesPage() {
     name,
     role,
     restaurantId: rid,
+    salary,
+    maxHoursPerWeek,
   }: {
     name: string;
     role: string;
     restaurantId: string;
+    salary: number;
+    maxHoursPerWeek: number;
   }) => {
     if (editTarget) {
       updateEmployee.mutate(
@@ -67,7 +76,13 @@ export default function EmployeesPage() {
       );
     } else {
       createEmployee.mutate(
-        { name, role, restaurant_id: rid },
+        {
+          name,
+          role,
+          restaurant_id: rid,
+          salary,
+          max_hours_per_week: maxHoursPerWeek,
+        },
         { onSuccess: closeModal },
       );
     }
@@ -92,7 +107,10 @@ export default function EmployeesPage() {
           <h1 className="headline-lg mt-1.5">Employees</h1>
         </div>
         {restaurantId && (
-          <button onClick={openCreate} className="btn btn-primary py-2.5 text-sm">
+          <button
+            onClick={openCreate}
+            className="btn btn-primary py-2.5 text-sm"
+          >
             <Plus size={15} />
             Add employee
           </button>
@@ -145,7 +163,10 @@ export default function EmployeesPage() {
           title="No employees yet"
           description="Add your first team member to get started with scheduling."
           action={
-            <button onClick={openCreate} className="btn btn-primary py-2.5 text-sm">
+            <button
+              onClick={openCreate}
+              className="btn btn-primary py-2.5 text-sm"
+            >
               <Plus size={15} />
               Add employee
             </button>

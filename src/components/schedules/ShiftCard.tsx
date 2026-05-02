@@ -1,4 +1,6 @@
 import { Trash2 } from 'lucide-react';
+import { useDraggable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 import { formatShiftTime } from '@/lib/utils/dates';
 import type { Shift } from '@/lib/types/schedule';
 
@@ -20,20 +22,42 @@ interface ShiftCardProps {
   role: string;
   onEdit: () => void;
   onDelete: () => void;
+  dragOverlay?: boolean;
 }
 
-export function ShiftCard({ shift, role, onEdit, onDelete }: ShiftCardProps) {
+export function ShiftCard({ shift, role, onEdit, onDelete, dragOverlay = false }: ShiftCardProps) {
   const { bg, text } = getRoleColors(role);
+
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: shift.id,
+    data: { shiftId: shift.id, employeeId: shift.employee_id, date: shift.shift_date },
+    disabled: dragOverlay,
+  });
+
   const startLabel = formatShiftTime(shift.start_time);
   const endLabel = formatShiftTime(shift.end_time);
   const hours = shift.duration_hours % 1 === 0
     ? `${shift.duration_hours}h`
     : `${shift.duration_hours.toFixed(1)}h`;
 
+  const baseStyle: React.CSSProperties = {
+    background: bg,
+    color: text,
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging ? 0.3 : 1,
+    ...(dragOverlay && {
+      transform: 'scale(1.03)',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+    }),
+  };
+
   return (
     <div
-      className="group relative rounded-[8px] px-2.5 py-2 cursor-pointer select-none"
-      style={{ background: bg, color: text }}
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      style={baseStyle}
+      className="group relative rounded-[8px] px-2.5 py-2 cursor-grab active:cursor-grabbing select-none"
       onClick={onEdit}
       role="button"
       tabIndex={0}
@@ -49,6 +73,7 @@ export function ShiftCard({ shift, role, onEdit, onDelete }: ShiftCardProps) {
 
       <button
         type="button"
+        onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => {
           e.stopPropagation();
           onDelete();

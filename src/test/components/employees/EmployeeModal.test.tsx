@@ -7,6 +7,8 @@ const BASE_EMPLOYEE: Employee = {
   id: 'emp-1',
   name: 'Elena Kovač',
   role: 'Server',
+  salary: 32000,
+  max_hours_per_week: 38,
   is_active: true,
   restaurant_id: 'rest-1',
   created_at: '2026-01-01T00:00:00Z',
@@ -49,6 +51,8 @@ describe('EmployeeModal — create mode', () => {
       name: 'Jordan Reyes',
       role: 'Cook',
       restaurantId: 'rest-1',
+      salary: 30000,
+      maxHoursPerWeek: 40,
     });
   });
 
@@ -94,6 +98,8 @@ describe('EmployeeModal — edit mode', () => {
       name: 'Elena K.',
       role: 'Server',
       restaurantId: 'rest-1',
+      salary: 32000,
+      maxHoursPerWeek: 38,
     });
   });
 });

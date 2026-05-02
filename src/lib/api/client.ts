@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 
 export const apiClient = axios.create({
@@ -8,7 +9,6 @@ export const apiClient = axios.create({
   },
 });
 
-// Attach Supabase JWT to every request
 apiClient.interceptors.request.use(async (config) => {
   const { data: { session } } = await supabase.auth.getSession();
   if (session?.access_token) {
@@ -17,13 +17,16 @@ apiClient.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Surface API error messages clearly
+let signingOut = false;
+
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Let the auth context handle sign-out on 401
-      supabase.auth.signOut();
+  async (error) => {
+    if (error.response?.status === 401 && !signingOut) {
+      signingOut = true;
+      toast.error('Your session has expired. Please sign in again.');
+      await supabase.auth.signOut();
+      signingOut = false;
     }
     return Promise.reject(error);
   }

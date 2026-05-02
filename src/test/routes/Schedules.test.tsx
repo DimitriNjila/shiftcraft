@@ -35,6 +35,14 @@ vi.mock('@/lib/hooks/use-shifts', () => ({
   useDeleteShift: () => ({ mutate: mockMutate, isPending: false }),
 }));
 
+vi.mock('@dnd-kit/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@dnd-kit/core')>();
+  return {
+    ...actual,
+    DragOverlay: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  };
+});
+
 // ── Fixtures ──────────────────────────────────────────────────
 
 const EMPLOYEES: Employee[] = [

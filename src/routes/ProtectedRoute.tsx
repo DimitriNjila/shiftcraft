@@ -21,7 +21,7 @@ export function ProtectedRoute() {
   }
 
   if (!session) {
-    return <Navigate to="/signup" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return <Outlet />;

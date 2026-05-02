@@ -10,7 +10,13 @@ export interface EmployeeModalProps {
   employee?: Employee;
   restaurantId: string;
   isPending: boolean;
-  onSubmit: (data: { name: string; role: Role; restaurantId: string }) => void;
+  onSubmit: (data: {
+    name: string;
+    role: Role;
+    restaurantId: string;
+    salary: number;
+    maxHoursPerWeek: number;
+  }) => void;
   onClose: () => void;
 }
 
@@ -24,11 +30,17 @@ export function EmployeeModal({
   const isEditing = !!employee;
   const [name, setName] = useState(employee?.name ?? "");
   const [role, setRole] = useState<Role>((employee?.role as Role) ?? "Server");
+  const [salary, setSalary] = useState(employee?.salary ?? 30000);
+  const [maxHoursPerWeek, setMaxHoursPerWeek] = useState(
+    employee?.max_hours_per_week ?? 40,
+  );
   const [error, setError] = useState("");
 
   useEffect(() => {
     setName(employee?.name ?? "");
     setRole((employee?.role as Role) ?? "Server");
+    setSalary(employee?.salary ?? 30000);
+    setMaxHoursPerWeek(employee?.max_hours_per_week ?? 40);
     setError("");
   }, [employee]);
 
@@ -39,7 +51,13 @@ export function EmployeeModal({
       return;
     }
     setError("");
-    onSubmit({ name: name.trim(), role, restaurantId });
+    onSubmit({
+      name: name.trim(),
+      role,
+      restaurantId,
+      salary,
+      maxHoursPerWeek,
+    });
   };
 
   return (
@@ -114,6 +132,40 @@ export function EmployeeModal({
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Salary */}
+          <div>
+            <label htmlFor="emp-salary" className="field-label">
+              Salary
+            </label>
+            <input
+              id="emp-salary"
+              type="number"
+              value={salary}
+              onChange={(e) => setSalary(Number(e.target.value))}
+              className="input-field"
+              placeholder="e.g. 30000"
+              min="0"
+              step="1"
+            />
+          </div>
+
+          {/* Max Hours Per Week */}
+          <div>
+            <label htmlFor="emp-max-hours" className="field-label">
+              Max Hours Per Week
+            </label>
+            <input
+              id="emp-max-hours"
+              type="number"
+              value={maxHoursPerWeek}
+              onChange={(e) => setMaxHoursPerWeek(Number(e.target.value))}
+              className="input-field"
+              placeholder="e.g. 40"
+              min="0"
+              step="1"
+            />
           </div>
 
           {/* Actions */}

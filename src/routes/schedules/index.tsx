@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useRestaurant } from '@/lib/hooks/use-restaurant';
 import { useWeekSchedule } from '@/lib/hooks/use-schedules';
 import { useEmployees } from '@/lib/hooks/use-employees';
-import { useDeleteShift } from '@/lib/hooks/use-shifts';
+import { useUpdateShift, useDeleteShift } from '@/lib/hooks/use-shifts';
 import { WeekNav } from '@/components/schedules/WeekNav';
 import { WeeklyGrid } from '@/components/schedules/WeeklyGrid';
 import { ShiftModal } from '@/components/schedules/ShiftModal';
@@ -39,6 +39,7 @@ export default function SchedulesPage() {
 
   const { schedule, isLoading, error, refetch } = useWeekSchedule(restaurant?.id, weekStart);
   const { data: employees = [] } = useEmployees(restaurant?.id);
+  const updateShift = useUpdateShift(schedule?.id ?? '');
   const deleteShift = useDeleteShift(schedule?.id ?? '');
 
   const [shiftModal, setShiftModal] = useState<ShiftModalState | null>(null);
@@ -104,6 +105,9 @@ export default function SchedulesPage() {
           }
           onEditShift={(shift) => setShiftModal({ shift })}
           onDeleteShift={(id) => setDeleteShiftId(id)}
+          onMoveShift={(shiftId, employeeId, date) =>
+            updateShift.mutate({ id: shiftId, updates: { employee_id: employeeId, shift_date: date } })
+          }
         />
       )}
 

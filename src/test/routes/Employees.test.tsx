@@ -45,6 +45,8 @@ const EMPLOYEES: Employee[] = [
     id: 'emp-1',
     name: 'Elena Kovač',
     role: 'Server',
+    salary: 32000,
+    max_hours_per_week: 38,
     is_active: true,
     restaurant_id: 'rest-1',
     created_at: '2026-01-01T00:00:00Z',
@@ -54,6 +56,8 @@ const EMPLOYEES: Employee[] = [
     id: 'emp-2',
     name: 'Marco Ricci',
     role: 'Cook',
+    salary: 28000,
+    max_hours_per_week: 40,
     is_active: true,
     restaurant_id: 'rest-1',
     created_at: '2026-01-01T00:00:00Z',
@@ -157,7 +161,7 @@ describe('EmployeesPage', () => {
 
       await waitFor(() =>
         expect(mockCreate).toHaveBeenCalledWith(
-          { name: 'Sam Lee', role: 'Server', restaurant_id: 'rest-1' },
+          { name: 'Sam Lee', role: 'Server', restaurant_id: 'rest-1', salary: 30000, max_hours_per_week: 40 },
           expect.any(Object),
         ),
       );
