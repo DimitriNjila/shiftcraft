@@ -34,7 +34,20 @@ export interface CreateScheduleRequest {
 export interface GenerateScheduleRequest {
   week_start: string;
   restaurant_id: string;
-  shift_templates?: unknown[];
+}
+
+export interface GenerateScheduleResponse {
+  id: string;
+  restaurant_id: string;
+  week_start: string;
+  total_shifts: number;
+  status: string;
+}
+
+export interface AnalyzeScheduleResponse {
+  schedule_id: string;
+  week_start: string;
+  analysis: string;
 }
 
 export interface CreateShiftRequest {

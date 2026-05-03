@@ -1,12 +1,15 @@
 import { useState } from 'react';
+import { Zap } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useRestaurant } from '@/lib/hooks/use-restaurant';
-import { useWeekSchedule } from '@/lib/hooks/use-schedules';
+import { useWeekSchedule, useGenerateSchedule } from '@/lib/hooks/use-schedules';
 import { useEmployees } from '@/lib/hooks/use-employees';
 import { useUpdateShift, useDeleteShift } from '@/lib/hooks/use-shifts';
+import { useAnalyzeSchedule } from '@/lib/hooks/use-analysis';
 import { WeekNav } from '@/components/schedules/WeekNav';
 import { WeeklyGrid } from '@/components/schedules/WeeklyGrid';
 import { ShiftModal } from '@/components/schedules/ShiftModal';
+import { AnalysisModal } from '@/components/schedules/AnalysisModal';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
@@ -41,9 +44,12 @@ export default function SchedulesPage() {
   const { data: employees = [] } = useEmployees(restaurant?.id);
   const updateShift = useUpdateShift(schedule?.id ?? '');
   const deleteShift = useDeleteShift(schedule?.id ?? '');
+  const generateSchedule = useGenerateSchedule();
+  const analyzeSchedule = useAnalyzeSchedule();
 
   const [shiftModal, setShiftModal] = useState<ShiftModalState | null>(null);
   const [deleteShiftId, setDeleteShiftId] = useState<string | null>(null);
+  const [analysisOpen, setAnalysisOpen] = useState(false);
 
   const isCurrentWeek = weekStart === getCurrentMondayStr();
 
@@ -67,6 +73,25 @@ export default function SchedulesPage() {
     setSearchParams({});
   }
 
+  function handleGenerate() {
+    if (!restaurant?.id) return;
+    generateSchedule.mutate({ restaurant_id: restaurant.id, week_start: weekStart });
+  }
+
+  function handleAnalyze() {
+    if (!schedule?.id) return;
+    setAnalysisOpen(true);
+    if (!analyzeSchedule.data) {
+      analyzeSchedule.mutate(schedule.id);
+    }
+  }
+
+  function handleAnalyzeRetry() {
+    if (!schedule?.id) return;
+    analyzeSchedule.reset();
+    analyzeSchedule.mutate(schedule.id);
+  }
+
   return (
     <>
       <div className="page-header">
@@ -74,6 +99,16 @@ export default function SchedulesPage() {
           <span className="label-md">Planning</span>
           <h1 className="headline-lg mt-1.5">Weekly schedule</h1>
         </div>
+
+        <button
+          type="button"
+          onClick={handleGenerate}
+          disabled={generateSchedule.isPending || !restaurant?.id}
+          className="btn btn-primary py-2.5 text-sm gap-2"
+        >
+          <Zap size={15} />
+          {generateSchedule.isPending ? 'Generating…' : 'Generate'}
+        </button>
       </div>
 
       <WeekNav
@@ -82,7 +117,9 @@ export default function SchedulesPage() {
         onPrev={prevWeek}
         onNext={nextWeek}
         onToday={goToday}
+        onAnalyze={handleAnalyze}
         isCurrentWeek={isCurrentWeek}
+        isAnalyzing={analyzeSchedule.isPending}
       />
 
       {isLoading && (
@@ -132,6 +169,16 @@ export default function SchedulesPage() {
             deleteShift.mutate(deleteShiftId, { onSettled: () => setDeleteShiftId(null) })
           }
           onCancel={() => setDeleteShiftId(null)}
+        />
+      )}
+
+      {analysisOpen && (
+        <AnalysisModal
+          analysis={analyzeSchedule.data?.analysis}
+          isPending={analyzeSchedule.isPending}
+          isError={analyzeSchedule.isError}
+          onRetry={handleAnalyzeRetry}
+          onClose={() => setAnalysisOpen(false)}
         />
       )}
     </>

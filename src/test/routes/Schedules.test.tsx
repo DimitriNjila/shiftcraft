@@ -23,6 +23,11 @@ const mockMutate = vi.fn();
 vi.mock('@/lib/hooks/use-schedules', () => ({
   useWeekSchedule: () => mockUseWeekSchedule(),
   useSchedules: () => ({ data: [], status: 'success' }),
+  useGenerateSchedule: () => ({ mutate: mockMutate, isPending: false }),
+}));
+
+vi.mock('@/lib/hooks/use-analysis', () => ({
+  useAnalyzeSchedule: () => ({ mutate: mockMutate, isPending: false, isError: false, data: undefined, reset: vi.fn() }),
 }));
 
 vi.mock('@/lib/hooks/use-employees', () => ({

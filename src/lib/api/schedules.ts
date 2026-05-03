@@ -1,5 +1,11 @@
 import { apiClient } from './client';
-import type { Schedule, Shift, CreateScheduleRequest } from '@/lib/types/schedule';
+import type {
+  Schedule,
+  Shift,
+  CreateScheduleRequest,
+  GenerateScheduleRequest,
+  GenerateScheduleResponse,
+} from '@/lib/types/schedule';
 
 function normalizeShift(shift: Shift): Shift {
   return {
@@ -33,6 +39,11 @@ export const schedulesApi = {
   getById: async (id: string): Promise<Schedule> => {
     const { data } = await apiClient.get(`/schedules/${id}`);
 return normalizeSchedule(data);
+  },
+
+  generate: async (payload: GenerateScheduleRequest): Promise<GenerateScheduleResponse> => {
+    const { data } = await apiClient.post('/schedules/generate', payload);
+    return data;
   },
 
   delete: async (id: string): Promise<void> => {

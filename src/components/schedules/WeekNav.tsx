@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { getWeekRangeLabel, getWeekNumber } from '@/lib/utils/dates';
 import type { Schedule } from '@/lib/types/schedule';
 
@@ -8,10 +8,21 @@ interface WeekNavProps {
   onPrev: () => void;
   onNext: () => void;
   onToday: () => void;
+  onAnalyze: () => void;
   isCurrentWeek: boolean;
+  isAnalyzing: boolean;
 }
 
-export function WeekNav({ monday, schedule, onPrev, onNext, onToday, isCurrentWeek }: WeekNavProps) {
+export function WeekNav({
+  monday,
+  schedule,
+  onPrev,
+  onNext,
+  onToday,
+  onAnalyze,
+  isCurrentWeek,
+  isAnalyzing,
+}: WeekNavProps) {
   const label = getWeekRangeLabel(monday);
   const weekNum = getWeekNumber(monday);
   const year = monday.getFullYear();
@@ -53,12 +64,27 @@ export function WeekNav({ monday, schedule, onPrev, onNext, onToday, isCurrentWe
         )}
       </div>
 
-      {schedule && (
-        <div className="flex items-center gap-5">
-          <Stat label="SHIFTS" value={String(schedule.total_shifts)} />
-          <Stat label="HOURS" value={String(schedule.total_hours)} />
-        </div>
-      )}
+      <div className="flex items-center gap-4">
+        {schedule && (
+          <>
+            <div className="flex items-center gap-5">
+              <Stat label="SHIFTS" value={String(schedule.total_shifts)} />
+              <Stat label="HOURS" value={String(schedule.total_hours)} />
+            </div>
+
+            <button
+              type="button"
+              onClick={onAnalyze}
+              disabled={isAnalyzing}
+              className="btn btn-ghost text-sm gap-1.5"
+              aria-label="Analyse schedule with AI"
+            >
+              <Sparkles size={14} className="text-primary" />
+              {isAnalyzing ? 'Analysing…' : 'Analyse'}
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

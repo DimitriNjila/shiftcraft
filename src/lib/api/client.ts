@@ -25,8 +25,10 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && !signingOut) {
       signingOut = true;
       toast.error('Your session has expired. Please sign in again.');
-      await supabase.auth.signOut();
-      signingOut = false;
+      // scope: 'local' clears the session from storage without a network request,
+      // so it works even when the token is already invalid or the network is degraded.
+      await supabase.auth.signOut({ scope: 'local' });
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }

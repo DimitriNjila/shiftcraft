@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
 import { toast } from 'sonner';
 import { schedulesApi } from '@/lib/api/schedules';
-import type { Schedule, CreateScheduleRequest } from '@/lib/types/schedule';
+import type { Schedule, CreateScheduleRequest, GenerateScheduleRequest } from '@/lib/types/schedule';
 
 export function useSchedules(restaurantId: string | undefined) {
   return useQuery({
@@ -65,6 +65,22 @@ export function useWeekSchedule(restaurantId: string | undefined, weekStart: str
     error: provision.isError ? provision.error : detailQuery.error,
     refetch: detailQuery.refetch,
   };
+}
+
+export function useGenerateSchedule() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: GenerateScheduleRequest) => schedulesApi.generate(payload),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['schedules', data.restaurant_id] });
+      queryClient.invalidateQueries({ queryKey: ['schedule', data.id] });
+      toast.success(`Generated ${data.total_shifts} shift${data.total_shifts === 1 ? '' : 's'}`);
+    },
+    onError: (error: AxiosError<{ detail?: string }>) => {
+      toast.error(error.response?.data?.detail ?? 'Failed to generate schedule');
+    },
+  });
 }
 
 export function useCreateSchedule() {
