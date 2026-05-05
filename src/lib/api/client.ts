@@ -2,8 +2,12 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 
+const API_BASE =
+  import.meta.env.VITE_API_URL ??
+  (import.meta.env.DEV ? 'http://localhost:8000/' : (() => { throw new Error('VITE_API_URL is not set') })());
+
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/',
+  baseURL: API_BASE,
   headers: {
     'Content-Type': 'application/json',
   },

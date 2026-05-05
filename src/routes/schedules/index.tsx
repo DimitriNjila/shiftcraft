@@ -102,12 +102,6 @@ export default function SchedulesPage() {
 
   function handleGenerate() {
     if (!restaurant?.id) return;
-    console.log(
-      "Generating schedule for restaurant",
-      restaurant.id,
-      "week starting",
-      weekStart,
-    );
     generateSchedule.mutate({
       restaurant_id: restaurant.id,
       week_start: weekStart,
