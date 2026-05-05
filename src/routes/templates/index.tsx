@@ -1,30 +1,33 @@
-import { useState, useEffect, useId } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
-import { useRestaurant } from '@/lib/hooks/use-restaurant';
-import { useShiftTemplates, useSaveShiftTemplates } from '@/lib/hooks/use-templates';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { ErrorMessage } from '@/components/ui/ErrorMessage';
-import { toHHMM, toHHMMSS } from '@/lib/utils/dates';
-import type { ShiftTemplateEntry, Role } from '@/lib/types/template';
+import { useState, useEffect, useId } from "react";
+import { Plus, Trash2 } from "lucide-react";
+import { useRestaurant } from "@/lib/hooks/use-restaurant";
+import {
+  useShiftTemplates,
+  useSaveShiftTemplates,
+} from "@/lib/hooks/use-templates";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { ErrorMessage } from "@/components/ui/ErrorMessage";
+import { toHHMM, toHHMMSS } from "@/lib/utils/dates";
+import type { ShiftTemplateEntry, Role } from "@/lib/types/template";
 
 // ── Constants ─────────────────────────────────────────────────
 
-const ROLES: Role[] = ['Server', 'Cook', 'Host', 'Manager'];
+const ROLES: Role[] = ["Server", "Cook", "Host", "Manager"];
 
 const DAYS = [
-  { num: 1, label: 'Monday' },
-  { num: 2, label: 'Tuesday' },
-  { num: 3, label: 'Wednesday' },
-  { num: 4, label: 'Thursday' },
-  { num: 5, label: 'Friday' },
-  { num: 6, label: 'Saturday' },
-  { num: 7, label: 'Sunday' },
+  { num: 1, label: "Monday" },
+  { num: 2, label: "Tuesday" },
+  { num: 3, label: "Wednesday" },
+  { num: 4, label: "Thursday" },
+  { num: 5, label: "Friday" },
+  { num: 6, label: "Saturday" },
+  { num: 7, label: "Sunday" },
 ];
 
-const DEFAULT_ENTRY: Omit<ShiftTemplateEntry, 'day_of_week'> = {
-  start_time: '09:00:00',
-  end_time: '17:00:00',
-  role: 'Server',
+const DEFAULT_ENTRY: Omit<ShiftTemplateEntry, "day_of_week"> = {
+  start_time: "09:00:00",
+  end_time: "17:00:00",
+  role: "Server",
   count: 1,
 };
 
@@ -44,6 +47,7 @@ function toRows(entries: ShiftTemplateEntry[]): TemplateRow[] {
 }
 
 function toEntries(rows: TemplateRow[]): ShiftTemplateEntry[] {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   return rows.map(({ _key: _, ...entry }) => entry);
 }
 
@@ -71,8 +75,8 @@ function TemplateRowEditor({ row, onChange, onDelete }: RowProps) {
             onClick={() => onChange({ ...row, role: r })}
             className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border-none cursor-pointer ${
               row.role === r
-                ? 'bg-surface-lowest shadow-[inset_0_0_0_1.5px_var(--color-primary-fixed)] text-on-surface'
-                : 'text-on-surface-muted hover:text-on-surface'
+                ? "bg-surface-lowest shadow-[inset_0_0_0_1.5px_var(--color-primary-fixed)] text-on-surface"
+                : "text-on-surface-muted hover:text-on-surface"
             }`}
           >
             {r}
@@ -84,25 +88,33 @@ function TemplateRowEditor({ row, onChange, onDelete }: RowProps) {
 
       {/* Start time */}
       <div className="flex flex-col items-start gap-0.5 shrink-0">
-        <label htmlFor={startId} className="label-md" style={{ fontSize: 9 }}>START</label>
+        <label htmlFor={startId} className="label-md" style={{ fontSize: 9 }}>
+          START
+        </label>
         <input
           id={startId}
           type="time"
           value={toHHMM(row.start_time)}
-          onChange={(e) => onChange({ ...row, start_time: toHHMMSS(e.target.value) })}
-          className="input-field py-1 px-2 text-[12px] w-[90px]"
+          onChange={(e) =>
+            onChange({ ...row, start_time: toHHMMSS(e.target.value) })
+          }
+          className="input-field py-1 px-2 text-[12px] w-22.5"
         />
       </div>
 
       {/* End time */}
       <div className="flex flex-col items-start gap-0.5 shrink-0">
-        <label htmlFor={endId} className="label-md" style={{ fontSize: 9 }}>END</label>
+        <label htmlFor={endId} className="label-md" style={{ fontSize: 9 }}>
+          END
+        </label>
         <input
           id={endId}
           type="time"
           value={toHHMM(row.end_time)}
-          onChange={(e) => onChange({ ...row, end_time: toHHMMSS(e.target.value) })}
-          className="input-field py-1 px-2 text-[12px] w-[90px]"
+          onChange={(e) =>
+            onChange({ ...row, end_time: toHHMMSS(e.target.value) })
+          }
+          className="input-field py-1 px-2 text-[12px] w-22.5"
         />
       </div>
 
@@ -110,17 +122,24 @@ function TemplateRowEditor({ row, onChange, onDelete }: RowProps) {
 
       {/* Count stepper */}
       <div className="flex flex-col items-start gap-0.5 shrink-0">
-        <label htmlFor={countId} className="label-md" style={{ fontSize: 9 }}>STAFF</label>
+        <label htmlFor={countId} className="label-md" style={{ fontSize: 9 }}>
+          STAFF
+        </label>
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() => onChange({ ...row, count: Math.max(1, row.count - 1) })}
+            onClick={() =>
+              onChange({ ...row, count: Math.max(1, row.count - 1) })
+            }
             className="btn-icon btn-ghost w-6 h-6 text-[14px] leading-none"
             aria-label="Decrease count"
           >
             −
           </button>
-          <span id={countId} className="mono text-[13px] font-semibold w-4 text-center">
+          <span
+            id={countId}
+            className="mono text-[13px] font-semibold w-4 text-center"
+          >
             {row.count}
           </span>
           <button
@@ -158,7 +177,15 @@ interface DaySectionProps {
   onDelete: (key: string) => void;
 }
 
-function DaySection({ dayNum: _, label, rows, onAdd, onChange, onDelete }: DaySectionProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function DaySection({
+  dayNum: _,
+  label,
+  rows,
+  onAdd,
+  onChange,
+  onDelete,
+}: DaySectionProps) {
   return (
     <div className="mb-6">
       <div className="flex items-center justify-between mb-2">
@@ -174,7 +201,9 @@ function DaySection({ dayNum: _, label, rows, onAdd, onChange, onDelete }: DaySe
       </div>
 
       {rows.length === 0 ? (
-        <p className="body-sm text-on-surface-faint px-1">No shifts scheduled</p>
+        <p className="body-sm text-on-surface-faint px-1">
+          No shifts scheduled
+        </p>
       ) : (
         <div className="flex flex-col gap-1.5">
           {rows.map((row) => (
@@ -198,7 +227,7 @@ export default function TemplatesPage() {
   const {
     data: record,
     status,
-    error,
+    // error,
     refetch,
   } = useShiftTemplates(restaurant?.id);
   const saveTemplates = useSaveShiftTemplates();
@@ -208,7 +237,7 @@ export default function TemplatesPage() {
 
   // Sync local state when server data loads
   useEffect(() => {
-    if (status === 'success') {
+    if (status === "success") {
       setRows(record ? toRows(record.templates) : []);
       setIsDirty(false);
     }
@@ -220,7 +249,10 @@ export default function TemplatesPage() {
   }
 
   function addRow(dayNum: number) {
-    mutate((prev) => [...prev, { ...DEFAULT_ENTRY, day_of_week: dayNum, _key: makeKey() }]);
+    mutate((prev) => [
+      ...prev,
+      { ...DEFAULT_ENTRY, day_of_week: dayNum, _key: makeKey() },
+    ]);
   }
 
   function updateRow(updated: TemplateRow) {
@@ -253,26 +285,30 @@ export default function TemplatesPage() {
           disabled={!isDirty || saveTemplates.isPending || !restaurant?.id}
           className="btn btn-primary py-2.5 text-sm"
         >
-          {saveTemplates.isPending ? 'Saving…' : 'Save changes'}
+          {saveTemplates.isPending ? "Saving…" : "Save changes"}
         </button>
       </div>
 
       <p className="body-sm text-on-surface-muted mb-8 max-w-xl">
-        Define the shift pattern the auto-generator will use. The generator matches
-        employees to open slots based on role, rest rules, and weekly hour caps.
+        Define the shift pattern the auto-generator will use. The generator
+        matches employees to open slots based on role, rest rules, and weekly
+        hour caps.
       </p>
 
-      {status === 'pending' && (
+      {status === "pending" && (
         <div className="flex justify-center py-20">
           <LoadingSpinner size={28} />
         </div>
       )}
 
-      {status === 'error' && (
-        <ErrorMessage message="Failed to load templates" onRetry={() => refetch()} />
+      {status === "error" && (
+        <ErrorMessage
+          message="Failed to load templates"
+          onRetry={() => refetch()}
+        />
       )}
 
-      {status === 'success' && (
+      {status === "success" && (
         <div className="max-w-3xl">
           {DAYS.map(({ num, label }) => (
             <DaySection
