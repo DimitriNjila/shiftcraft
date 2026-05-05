@@ -1,25 +1,31 @@
-import { useState } from 'react';
-import { Zap } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
-import { useRestaurant } from '@/lib/hooks/use-restaurant';
-import { useWeekSchedule, useGenerateSchedule } from '@/lib/hooks/use-schedules';
-import { useEmployees } from '@/lib/hooks/use-employees';
-import { useUpdateShift, useDeleteShift } from '@/lib/hooks/use-shifts';
-import { useAnalyzeSchedule } from '@/lib/hooks/use-analysis';
-import { WeekNav } from '@/components/schedules/WeekNav';
-import { WeeklyGrid } from '@/components/schedules/WeeklyGrid';
-import { ShiftModal } from '@/components/schedules/ShiftModal';
-import { AnalysisModal } from '@/components/schedules/AnalysisModal';
-import { ConfirmModal } from '@/components/ui/ConfirmModal';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { useState } from "react";
+import { Zap } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { useRestaurant } from "@/lib/hooks/use-restaurant";
+import {
+  useWeekSchedule,
+  useGenerateSchedule,
+} from "@/lib/hooks/use-schedules";
+import { useEmployees } from "@/lib/hooks/use-employees";
+import { useUpdateShift, useDeleteShift } from "@/lib/hooks/use-shifts";
+import { useAnalyzeSchedule } from "@/lib/hooks/use-analysis";
+import { WeekNav } from "@/components/schedules/WeekNav";
+import { WeeklyGrid } from "@/components/schedules/WeeklyGrid";
+import { ShiftModal } from "@/components/schedules/ShiftModal";
+import { AnalysisModal } from "@/components/schedules/AnalysisModal";
+import { CoverageGaps } from "@/components/schedules/CoverageGaps";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import {
   getMondayOfWeek,
   getWeekDays,
   toDateStr,
   fromDateStr,
-} from '@/lib/utils/dates';
-import type { Shift } from '@/lib/types/schedule';
+} from "@/lib/utils/dates";
+import { computeCoverageGaps, computeRequiredHours } from "@/lib/utils/coverage";
+import { useShiftTemplates } from "@/lib/hooks/use-templates";
+import type { Shift } from "@/lib/types/schedule";
 
 interface ShiftModalState {
   defaultEmployeeId?: string;
@@ -35,17 +41,38 @@ export default function SchedulesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: restaurant } = useRestaurant();
 
-  const weekParam = searchParams.get('week');
-  const monday = weekParam ? getMondayOfWeek(fromDateStr(weekParam)) : getMondayOfWeek(new Date());
+  const weekParam = searchParams.get("week");
+  const monday = weekParam
+    ? getMondayOfWeek(fromDateStr(weekParam))
+    : getMondayOfWeek(new Date());
   const weekStart = toDateStr(monday);
   const weekDays = getWeekDays(monday);
 
-  const { schedule, isLoading, error, refetch } = useWeekSchedule(restaurant?.id, weekStart);
+  const { schedule, isLoading, error, refetch } = useWeekSchedule(
+    restaurant?.id,
+    weekStart,
+  );
   const { data: employees = [] } = useEmployees(restaurant?.id);
-  const updateShift = useUpdateShift(schedule?.id ?? '');
-  const deleteShift = useDeleteShift(schedule?.id ?? '');
+  const { data: templateRecord } = useShiftTemplates(restaurant?.id);
+  const updateShift = useUpdateShift(schedule?.id ?? "");
+  const deleteShift = useDeleteShift(schedule?.id ?? "");
   const generateSchedule = useGenerateSchedule();
   const analyzeSchedule = useAnalyzeSchedule();
+
+  const templates = templateRecord?.templates ?? [];
+
+  const salaryById = new Map(employees.map((e) => [e.id, e.salary]));
+  const laborCost = (schedule?.shifts ?? []).reduce(
+    (sum, s) => sum + (salaryById.get(s.employee_id) ?? 0) * s.duration_hours,
+    0,
+  );
+
+  const coverageGaps =
+    schedule && templates.length > 0
+      ? computeCoverageGaps(templates, schedule, weekDays, employees)
+      : [];
+  const requiredHours = computeRequiredHours(templates);
+  const scheduledHours = schedule?.total_hours ?? 0;
 
   const [shiftModal, setShiftModal] = useState<ShiftModalState | null>(null);
   const [deleteShiftId, setDeleteShiftId] = useState<string | null>(null);
@@ -75,7 +102,16 @@ export default function SchedulesPage() {
 
   function handleGenerate() {
     if (!restaurant?.id) return;
-    generateSchedule.mutate({ restaurant_id: restaurant.id, week_start: weekStart });
+    console.log(
+      "Generating schedule for restaurant",
+      restaurant.id,
+      "week starting",
+      weekStart,
+    );
+    generateSchedule.mutate({
+      restaurant_id: restaurant.id,
+      week_start: weekStart,
+    });
   }
 
   function handleAnalyze() {
@@ -107,13 +143,14 @@ export default function SchedulesPage() {
           className="btn btn-primary py-2.5 text-sm gap-2"
         >
           <Zap size={15} />
-          {generateSchedule.isPending ? 'Generating…' : 'Generate'}
+          {generateSchedule.isPending ? "Generating…" : "Generate"}
         </button>
       </div>
 
       <WeekNav
         monday={monday}
         schedule={schedule}
+        laborCost={laborCost}
         onPrev={prevWeek}
         onNext={nextWeek}
         onToday={goToday}
@@ -122,6 +159,14 @@ export default function SchedulesPage() {
         isAnalyzing={analyzeSchedule.isPending}
       />
 
+      {!isLoading && !error && schedule && templates.length > 0 && (
+        <CoverageGaps
+          gaps={coverageGaps}
+          requiredHours={requiredHours}
+          scheduledHours={scheduledHours}
+        />
+      )}
+
       {isLoading && (
         <div className="flex justify-center py-20">
           <LoadingSpinner size={28} />
@@ -129,7 +174,10 @@ export default function SchedulesPage() {
       )}
 
       {error && (
-        <ErrorMessage message="Failed to load schedule" onRetry={() => refetch()} />
+        <ErrorMessage
+          message="Failed to load schedule"
+          onRetry={() => refetch()}
+        />
       )}
 
       {!isLoading && !error && schedule && (
@@ -138,12 +186,18 @@ export default function SchedulesPage() {
           employees={employees}
           weekDays={weekDays}
           onAddShift={(employeeId, dateStr) =>
-            setShiftModal({ defaultEmployeeId: employeeId, defaultDate: dateStr })
+            setShiftModal({
+              defaultEmployeeId: employeeId,
+              defaultDate: dateStr,
+            })
           }
           onEditShift={(shift) => setShiftModal({ shift })}
           onDeleteShift={(id) => setDeleteShiftId(id)}
           onMoveShift={(shiftId, employeeId, date) =>
-            updateShift.mutate({ id: shiftId, updates: { employee_id: employeeId, shift_date: date } })
+            updateShift.mutate({
+              id: shiftId,
+              updates: { employee_id: employeeId, shift_date: date },
+            })
           }
         />
       )}
@@ -166,7 +220,9 @@ export default function SchedulesPage() {
           confirmLabel="Remove shift"
           isPending={deleteShift.isPending}
           onConfirm={() =>
-            deleteShift.mutate(deleteShiftId, { onSettled: () => setDeleteShiftId(null) })
+            deleteShift.mutate(deleteShiftId, {
+              onSettled: () => setDeleteShiftId(null),
+            })
           }
           onCancel={() => setDeleteShiftId(null)}
         />

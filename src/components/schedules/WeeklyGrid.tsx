@@ -90,13 +90,13 @@ function EmployeeCell({
   return (
     <div className="flex items-center gap-2.5 px-3 py-3 border-b border-surface-highest bg-surface">
       <div
-        className="w-8 h-8 rounded-full shrink-0 grid place-items-center text-[11px] font-bold font-display"
+        className="w-11 h-11 rounded-full shrink-0 grid place-items-center text-[13px] font-bold font-display"
         style={{ background: colors.bg, color: colors.color }}
       >
         {initials(employee.name)}
       </div>
       <div className="min-w-0">
-        <p className="body-sm font-semibold truncate leading-tight">
+        <p className="body-sm font-bold truncate leading-tight">
           {employee.name}
         </p>
         <p
@@ -157,8 +157,8 @@ function ShiftCell({
   return (
     <div
       ref={setNodeRef}
-      className={`group relative min-h-[64px] p-1.5 border-b border-l border-surface-highest flex flex-col gap-1 transition-colors ${
-        today ? "bg-primary-fixed/[0.06]" : ""
+      className={`group relative min-h-16 p-1.5 border-b border-l border-surface-highest flex flex-col gap-1 transition-colors ${
+        today ? "bg-primary-fixed/6" : ""
       } ${isOver ? "ring-2 ring-inset ring-primary/40 bg-primary-fixed/10" : ""}`}
     >
       {shifts.map((shift) => (

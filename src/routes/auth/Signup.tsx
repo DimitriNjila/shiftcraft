@@ -15,6 +15,7 @@ export interface PasswordCriteria {
   special: boolean;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const getPasswordCriteria = (password: string): PasswordCriteria => {
   return {
     length: password.length >= 10,
@@ -25,6 +26,7 @@ export const getPasswordCriteria = (password: string): PasswordCriteria => {
   };
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const getPasswordStrength = (password: string): number => {
   if (!password) return 0;
   const c = getPasswordCriteria(password);
@@ -85,7 +87,7 @@ function EditorialPanel() {
           <br />
           <em className="not-italic font-medium text-primary">finally easy.</em>
         </p>
-        <p className="body-md mt-5 max-w-[380px] text-on-surface-muted text-[15px] leading-[1.55]">
+        <p className="body-md mt-5 max-w-95 text-on-surface-muted text-[15px] leading-[1.55]">
           Build your first week's schedule in minutes, not hours. Auto-fill
           shifts, manage time-off, and keep your whole team in sync.
         </p>
@@ -95,10 +97,7 @@ function EditorialPanel() {
 
       <div className="relative grid grid-cols-3 gap-0.5 bg-surface-high rounded-2xl p-0.5">
         {STATS.map((s) => (
-          <div
-            key={s.k}
-            className="bg-surface-lowest rounded-[14px] py-4 px-[18px]"
-          >
+          <div key={s.k} className="bg-surface-lowest rounded-lg py-4 px-4.5">
             <div className="label-md" style={{ fontSize: 9.5 }}>
               {s.k}
             </div>
@@ -199,7 +198,7 @@ export default function SignupPage() {
 
         {/* Centred form area */}
         <div className="flex-1 flex items-center justify-start">
-          <div className="w-full max-w-[400px]">
+          <div className="w-full max-w-100">
             <span className="label-md">Start a trial · 14 days free</span>
             <h1 className="display-md mt-1.5 mb-2.5">Create your account.</h1>
             <p className="body-md text-on-surface-muted mb-6">
@@ -256,7 +255,7 @@ export default function SignupPage() {
                   {[1, 2, 3, 4].map((level) => (
                     <div
                       key={level}
-                      className={`flex-1 h-[3px] rounded-sm transition-all duration-300 ${
+                      className={`flex-1 h-0.75 rounded-sm transition-all duration-300 ${
                         strength >= level
                           ? strengthBarColor(strength)
                           : "bg-surface-highest"

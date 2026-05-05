@@ -39,7 +39,7 @@ function EditorialPanel() {
           <br />
           <em className="not-italic font-medium text-primary">every shift.</em>
         </p>
-        <p className="body-md mt-5 max-w-[380px] text-on-surface-muted text-[15px] leading-[1.55]">
+        <p className="body-md mt-5 max-w-95 text-on-surface-muted text-[15px] leading-[1.55]">
           Schedule staff, track hours, approve time off — the daily operations
           of a modern café, composed like a well-run dining room.
         </p>
@@ -50,10 +50,7 @@ function EditorialPanel() {
       {/* Proof bar */}
       <div className="relative grid grid-cols-3 gap-0.5 bg-surface-high rounded-2xl p-0.5">
         {STATS.map((s) => (
-          <div
-            key={s.k}
-            className="bg-surface-lowest rounded-[14px] py-4 px-[18px]"
-          >
+          <div key={s.k} className="bg-surface-lowest rounded-lg py-4 px-4.5">
             <div className="label-md" style={{ fontSize: 9.5 }}>
               {s.k}
             </div>
@@ -137,7 +134,7 @@ export default function LoginPage() {
 
         {/* Centred form area */}
         <div className="flex-1 flex items-center justify-start">
-          <div className="w-full max-w-[400px]">
+          <div className="w-full max-w-100">
             <span className="label-md">Sign in</span>
             <h1 className="display-md mt-1.5 mb-2.5">Welcome back.</h1>
             <p className="body-md text-on-surface-muted mb-7">
@@ -228,7 +225,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setRemember(!remember)}
                   aria-label="Keep me signed in"
-                  className={`w-[18px] h-[18px] rounded-[5px] grid place-items-center border-none cursor-pointer shrink-0 transition-colors ${
+                  className={`w-4.5 h-4.5 rounded-[5px] grid place-items-center border-none cursor-pointer shrink-0 transition-colors ${
                     remember ? "bg-primary" : "bg-surface-highest"
                   }`}
                 >

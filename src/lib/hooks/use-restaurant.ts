@@ -19,10 +19,10 @@ export function useRestaurant() {
         .from('restaurants')
         .select('id, name, team_size, onboarding_completed')
         .eq('owner_id', user!.id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      return data as Restaurant;
+      return data as Restaurant | null;
     },
     enabled: !!user,
     retry: 3,

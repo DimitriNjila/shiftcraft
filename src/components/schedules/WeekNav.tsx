@@ -1,10 +1,11 @@
-import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
-import { getWeekRangeLabel, getWeekNumber } from '@/lib/utils/dates';
-import type { Schedule } from '@/lib/types/schedule';
+import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { getWeekRangeLabel, getWeekNumber } from "@/lib/utils/dates";
+import type { Schedule } from "@/lib/types/schedule";
 
 interface WeekNavProps {
   monday: Date;
   schedule: Schedule | undefined;
+  laborCost: number;
   onPrev: () => void;
   onNext: () => void;
   onToday: () => void;
@@ -16,6 +17,7 @@ interface WeekNavProps {
 export function WeekNav({
   monday,
   schedule,
+  laborCost,
   onPrev,
   onNext,
   onToday,
@@ -40,9 +42,12 @@ export function WeekNav({
             <ChevronLeft size={17} />
           </button>
 
-          <div className="text-center min-w-[140px]">
+          <div className="text-center min-w-35">
             <p className="headline-sm">{label}</p>
-            <p className="label-md text-on-surface-muted" style={{ fontSize: 11 }}>
+            <p
+              className="label-md text-on-surface-muted"
+              style={{ fontSize: 11 }}
+            >
               Week {weekNum} · {year}
             </p>
           </div>
@@ -58,7 +63,11 @@ export function WeekNav({
         </div>
 
         {!isCurrentWeek && (
-          <button type="button" onClick={onToday} className="btn btn-ghost text-sm">
+          <button
+            type="button"
+            onClick={onToday}
+            className="btn btn-ghost text-sm"
+          >
             Today
           </button>
         )}
@@ -70,6 +79,9 @@ export function WeekNav({
             <div className="flex items-center gap-5">
               <Stat label="SHIFTS" value={String(schedule.total_shifts)} />
               <Stat label="HOURS" value={String(schedule.total_hours)} />
+              {laborCost > 0 && (
+                <Stat label="LABOUR" value={`$${laborCost.toFixed(2)}`} />
+              )}
             </div>
 
             <button
@@ -80,7 +92,7 @@ export function WeekNav({
               aria-label="Analyse schedule with AI"
             >
               <Sparkles size={14} className="text-primary" />
-              {isAnalyzing ? 'Analysing…' : 'Analyse'}
+              {isAnalyzing ? "Analysing…" : "Analyse"}
             </button>
           </>
         )}
