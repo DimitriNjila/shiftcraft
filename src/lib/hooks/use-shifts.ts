@@ -11,7 +11,6 @@ export function useCreateShift(scheduleId: string) {
     mutationFn: (payload: CreateShiftRequest) => shiftsApi.create(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['schedule', scheduleId] });
-      queryClient.invalidateQueries({ queryKey: ['schedules'] });
       toast.success('Shift added');
     },
     onError: (error: AxiosError<{ detail?: string }>) => {
@@ -28,7 +27,6 @@ export function useUpdateShift(scheduleId: string) {
       shiftsApi.update(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['schedule', scheduleId] });
-      queryClient.invalidateQueries({ queryKey: ['schedules'] });
       toast.success('Shift updated');
     },
     onError: (error: AxiosError<{ detail?: string }>) => {

@@ -113,7 +113,6 @@ body {
   background: var(--color-bg);
   font-size: 14px;
   line-height: 1.5;
-  overflow: hidden;
 }
 
 /* button {
@@ -544,6 +543,28 @@ input, textarea, select {
     .sidebar.sidebar-open {
       transform: translateX(0);
       box-shadow: var(--shadow-lift);
+    }
+  }
+
+  /* --- Auth grid mobile --- */
+  @media (max-width: 767px) {
+    .auth-grid {
+      grid-template-columns: 1fr;
+    }
+    .editorial-panel {
+      display: none;
+    }
+  }
+
+  /* --- Page content mobile --- */
+  @media (max-width: 767px) {
+    .page-content {
+      padding: 20px 16px 40px;
+    }
+    .page-header {
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-start;
     }
   }
 

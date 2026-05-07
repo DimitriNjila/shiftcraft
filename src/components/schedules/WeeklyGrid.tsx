@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, memo, useMemo, useState, useCallback } from "react";
 import { Plus } from "lucide-react";
 import {
   DndContext,
@@ -134,24 +134,30 @@ interface ShiftCellProps {
   shifts: Shift[];
   today: boolean;
   isDragging: boolean;
-  onAdd: () => void;
+  onAddShift: (employeeId: string, dateStr: string) => void;
   onEdit: (shift: Shift) => void;
   onDelete: (shiftId: string) => void;
 }
 
-function ShiftCell({
+const ShiftCell = memo(function ShiftCell({
   employee,
   dateStr,
   shifts,
   today,
   isDragging,
-  onAdd,
+  onAddShift,
   onEdit,
   onDelete,
 }: ShiftCellProps) {
+  // Stable object reference — avoids DnD context re-registering on every render
+  const droppableData = useMemo(
+    () => ({ employeeId: employee.id, dateStr }),
+    [employee.id, dateStr],
+  );
+
   const { setNodeRef, isOver } = useDroppable({
     id: `${employee.id}:${dateStr}`,
-    data: { employeeId: employee.id, dateStr },
+    data: droppableData,
   });
 
   return (
@@ -174,7 +180,7 @@ function ShiftCell({
       {shifts.length === 0 && !isDragging && (
         <button
           type="button"
-          onClick={onAdd}
+          onClick={() => onAddShift(employee.id, dateStr)}
           className="absolute inset-0 w-full h-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
           aria-label={`Add shift for ${employee.name}`}
         >
@@ -191,7 +197,7 @@ function ShiftCell({
       )}
     </div>
   );
-}
+});
 
 // ── Weekly grid ───────────────────────────────────────────────
 
@@ -218,6 +224,11 @@ export function WeeklyGrid({
   const activeEmployees = employees.filter((e) => e.is_active);
 
   const [activeShift, setActiveShift] = useState<Shift | null>(null);
+
+  // Stable callbacks so memoized ShiftCell children don't re-render
+  const stableOnAddShift = useCallback(onAddShift, [onAddShift]);
+  const stableOnEditShift = useCallback(onEditShift, [onEditShift]);
+  const stableOnDeleteShift = useCallback(onDeleteShift, [onDeleteShift]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -298,9 +309,9 @@ export function WeeklyGrid({
                       shifts={dayShifts}
                       today={isToday(day)}
                       isDragging={!!activeShift}
-                      onAdd={() => onAddShift(emp.id, dateStr)}
-                      onEdit={onEditShift}
-                      onDelete={onDeleteShift}
+                      onAddShift={stableOnAddShift}
+                      onEdit={stableOnEditShift}
+                      onDelete={stableOnDeleteShift}
                     />
                   );
                 })}

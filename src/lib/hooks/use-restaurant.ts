@@ -26,6 +26,7 @@ export function useRestaurant() {
     },
     enabled: !!user,
     retry: 3,
+    staleTime: 1000 * 60 * 5,  // 5 min — restaurant info rarely changes
     gcTime: 1000 * 60 * 30,
   });
 }
