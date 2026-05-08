@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Menu } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Sidebar } from "./Sidebar";
 
 export default function AppLayout() {
@@ -47,7 +48,15 @@ export default function AppLayout() {
           {/* Page content — keyed on pathname to re-mount on route change,
               triggering the fade-in animation each time. */}
           <div key={location.pathname} className="page-content fade-in">
-            <Outlet />
+            <Suspense
+              fallback={
+                <div className="flex h-full items-center justify-center py-20">
+                  <LoadingSpinner size={28} />
+                </div>
+              }
+            >
+              <Outlet />
+            </Suspense>
           </div>
         </div>
       </div>

@@ -79,7 +79,11 @@ export default function SettingsPage() {
   function toggleDark() {
     const next = !dark;
     setDark(next);
-    document.documentElement.classList.toggle("dark", next);
+    if (next) {
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
     localStorage.setItem("theme", next ? "dark" : "light");
   }
 
@@ -270,7 +274,7 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={toggleDark}
-              className={`relative shrink-0 w-10 h-5 rounded-full transition-colors ${
+              className={`relative shrink-0 w-10 h-5 rounded-full transition-colors cursor-pointer ${
                 dark ? "bg-primary" : "bg-surface-highest"
               }`}
               role="switch"

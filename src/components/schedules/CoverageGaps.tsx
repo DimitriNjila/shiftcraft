@@ -45,8 +45,11 @@ export function CoverageGaps({
           </p>
 
           <div className="mt-2.5 flex flex-wrap gap-1.5">
-            {gaps.map((gap, i) => (
-              <GapPill key={i} gap={gap} />
+            {gaps.map((gap) => (
+              <GapPill
+                key={`${gap.dayName}-${gap.role}-${gap.start_time}`}
+                gap={gap}
+              />
             ))}
           </div>
         </div>
