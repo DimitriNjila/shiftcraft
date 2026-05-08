@@ -530,7 +530,12 @@ input, textarea, select {
 
   /* Mobile: sidebar becomes a fixed slide-over drawer */
   @media (max-width: 767px) {
-    .app-shell { grid-template-columns: 0 1fr; }
+    /*
+     * position:fixed removes .sidebar from grid flow, so it no longer
+     * occupies column 1. With "0 1fr", .main-area auto-places into the
+     * 0px column and becomes invisible. Single-column grid fixes this.
+     */
+    .app-shell { grid-template-columns: 1fr; }
 
     .sidebar {
       position: fixed;
