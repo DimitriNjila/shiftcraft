@@ -22,7 +22,8 @@ const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
   Manager: { bg: "var(--color-tertiary-fixed)",        text: "#8b1d18" },
 };
 
-function fmtHours(h: number) {
+function fmtHours(h: number | null | undefined) {
+  if (h == null || isNaN(h)) return "—";
   return h % 1 === 0 ? `${h}h` : `${h.toFixed(1)}h`;
 }
 
@@ -283,7 +284,7 @@ export default function DashboardPage() {
                         {formatShiftTime(shift.start_time)} – {formatShiftTime(shift.end_time)}
                       </p>
                       <p className="label-md text-on-surface-faint">
-                        {fmtHours(shift.duration_hours)}
+                        {fmtHours(shift.duration_hours ?? 0)}
                       </p>
                     </div>
                   </div>
