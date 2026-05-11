@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Lock, ChevronRight, Check, X } from "lucide-react";
+import { Lock, ChevronRight, Check, X, EyeOff, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -89,6 +89,11 @@ export default function ResetPasswordConfirmPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowpassword] = useState(false);
+
+  const togglePasswordVisibility = () => {
+    setShowpassword(!showPassword);
+  }
 
   useEffect(() => {
     // Listen for the PASSWORD_RECOVERY event Supabase fires when the user
@@ -208,7 +213,7 @@ export default function ResetPasswordConfirmPage() {
                       />
                       <input
                         id="password"
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="input-field pl-9"
@@ -216,6 +221,13 @@ export default function ResetPasswordConfirmPage() {
                         autoComplete="new-password"
                         autoFocus
                       />
+                      <button
+                        type="button"
+                        onClick={togglePasswordVisibility}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-faint focus:outline-none cursor-pointer"
+                          >
+                        {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button> 
                     </div>
 
                     {/* Strength meter */}
