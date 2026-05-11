@@ -1,26 +1,39 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Users, CalendarDays, Clock, DollarSign, ArrowRight } from "lucide-react";
+import {
+  Users,
+  CalendarDays,
+  Clock,
+  DollarSign,
+  ArrowRight,
+} from "lucide-react";
 import { useRestaurant } from "@/lib/hooks/use-restaurant";
 import { useEmployees } from "@/lib/hooks/use-employees";
 import { useSchedules, useScheduleDetail } from "@/lib/hooks/use-schedules";
 import {
   getMondayOfWeek,
+  getWeekDays,
   toDateStr,
   fromDateStr,
   formatShiftTime,
   getWeekRangeLabel,
 } from "@/lib/utils/dates";
 import type { Employee } from "@/lib/types/employee";
+import type { Shift } from "@/lib/types/schedule";
 
 // ── Helpers ───────────────────────────────────────────────────
 
 const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
-  Server:  { bg: "var(--color-primary-fixed)",        text: "var(--color-primary)" },
-  Cook:    { bg: "var(--color-warning-container)",     text: "var(--color-warning)" },
-  Host:    { bg: "var(--color-secondary-container)",   text: "var(--color-on-secondary-container)" },
-  Manager: { bg: "var(--color-tertiary-fixed)",        text: "#8b1d18" },
+  Server: { bg: "var(--color-primary-fixed)", text: "var(--color-primary)" },
+  Cook: { bg: "var(--color-warning-container)", text: "var(--color-warning)" },
+  Host: {
+    bg: "var(--color-secondary-container)",
+    text: "var(--color-on-secondary-container)",
+  },
+  Manager: { bg: "var(--color-tertiary-fixed)", text: "#8b1d18" },
 };
+
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function fmtHours(h: number | null | undefined) {
   if (h == null || isNaN(h)) return "—";
@@ -28,9 +41,7 @@ function fmtHours(h: number | null | undefined) {
 }
 
 function fmtCurrency(n: number) {
-  return n >= 1000
-    ? `$${(n / 1000).toFixed(1)}k`
-    : `$${Math.round(n)}`;
+  return n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${Math.round(n)}`;
 }
 
 // ── Sub-components ────────────────────────────────────────────
@@ -73,12 +84,15 @@ function RoleBar({ employees }: { employees: Employee[] }) {
   const active = employees.filter((e) => e.is_active);
   const total = active.length;
 
-  if (total === 0) return <p className="body-sm text-on-surface-faint">No active employees</p>;
+  if (total === 0)
+    return <p className="body-sm text-on-surface-faint">No active employees</p>;
 
-  const counts = roles.map((role) => ({
-    role,
-    count: active.filter((e) => e.role === role).length,
-  })).filter((r) => r.count > 0);
+  const counts = roles
+    .map((role) => ({
+      role,
+      count: active.filter((e) => e.role === role).length,
+    }))
+    .filter((r) => r.count > 0);
 
   return (
     <div className="flex flex-col gap-3">
@@ -102,7 +116,10 @@ function RoleBar({ employees }: { employees: Employee[] }) {
             <div className="flex items-center gap-2">
               <span
                 className="w-2 h-2 rounded-full shrink-0"
-                style={{ background: ROLE_COLORS[role]?.bg ?? "var(--color-surface-high)" }}
+                style={{
+                  background:
+                    ROLE_COLORS[role]?.bg ?? "var(--color-surface-high)",
+                }}
               />
               <span className="body-sm">{role}</span>
             </div>
@@ -121,15 +138,136 @@ function RoleBar({ employees }: { employees: Employee[] }) {
   );
 }
 
+// Compact week overview — read-only, links to /schedules?week=...
+function WeekOverview({
+  shifts,
+  weekDays,
+  weekStart,
+  loading,
+}: {
+  shifts: Shift[];
+  weekDays: Date[];
+  weekStart: string;
+  loading: boolean;
+}) {
+  const today = toDateStr(new Date());
+
+  const shiftsByDay = useMemo(() => {
+    const map = new Map<string, Shift[]>();
+    for (const day of weekDays) {
+      const key = toDateStr(day);
+      map.set(
+        key,
+        shifts
+          .filter((s) => s.shift_date === key)
+          .sort((a, b) => a.start_time.localeCompare(b.start_time)),
+      );
+    }
+    return map;
+  }, [shifts, weekDays]);
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-7 gap-2">
+        {DAY_LABELS.map((d) => (
+          <div key={d} className="flex flex-col gap-1.5">
+            <p className="label-md text-center text-on-surface-faint">{d}</p>
+            <div className="skeleton h-16 rounded-xl" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-7 gap-2">
+      {weekDays.map((day, i) => {
+        const dateStr = toDateStr(day);
+        const dayShifts = shiftsByDay.get(dateStr) ?? [];
+        const isToday = dateStr === today;
+
+        return (
+          <Link
+            key={dateStr}
+            to={`/schedules?week=${weekStart}`}
+            className="flex flex-col gap-1.5 group"
+          >
+            <p
+              className={`label-md text-center ${isToday ? "text-primary font-semibold" : "text-on-surface-faint"}`}
+            >
+              {DAY_LABELS[i]}
+            </p>
+            <div
+              className={`rounded-xl p-2 flex flex-col gap-1 min-h-[64px] transition-colors ${
+                isToday
+                  ? "bg-surface-container ring-1 ring-primary/30"
+                  : "bg-surface-low group-hover:bg-surface-container"
+              }`}
+            >
+              {dayShifts.length === 0 ? (
+                <span className="label-md text-on-surface-faint text-center mt-auto mb-auto block leading-none pt-3">
+                  —
+                </span>
+              ) : (
+                dayShifts.slice(0, 3).map((shift) => {
+                  const colors = ROLE_COLORS[shift.employee?.role ?? ""] ?? {
+                    bg: "var(--color-surface-high)",
+                    text: "var(--color-on-surface-muted)",
+                  };
+                  return (
+                    <div
+                      key={shift.id}
+                      className="flex items-center gap-1 rounded-md px-1 py-0.5"
+                      style={{ background: colors.bg }}
+                    >
+                      <span
+                        className="text-[9px] font-bold font-display shrink-0"
+                        style={{ color: colors.text }}
+                      >
+                        {(shift.employee?.name ?? "?").charAt(0).toUpperCase()}
+                      </span>
+                      <span
+                        className="truncate text-[9px] font-medium leading-tight"
+                        style={{ color: colors.text }}
+                      >
+                        {shift.employee?.name?.split(" ")[0] ?? "?"}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+              {dayShifts.length > 3 && (
+                <span className="label-md text-on-surface-faint text-center">
+                  +{dayShifts.length - 3}
+                </span>
+              )}
+            </div>
+            {dayShifts.length > 0 && (
+              <p className="label-md text-center text-on-surface-faint">
+                {dayShifts.length} shift{dayShifts.length !== 1 ? "s" : ""}
+              </p>
+            )}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Page ─────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const { data: restaurant } = useRestaurant();
-  const { data: employees, isLoading: empLoading } = useEmployees(restaurant?.id);
-  const { data: schedules, isLoading: schLoading } = useSchedules(restaurant?.id);
+  const { data: employees, isLoading: empLoading } = useEmployees(
+    restaurant?.id,
+  );
+  const { data: schedules, isLoading: schLoading } = useSchedules(
+    restaurant?.id,
+  );
 
   const thisMonday = useMemo(() => toDateStr(getMondayOfWeek(new Date())), []);
   const today = useMemo(() => toDateStr(new Date()), []);
+  const weekDays = useMemo(() => getWeekDays(getMondayOfWeek(new Date())), []);
 
   // Find the current week's schedule from the list (don't auto-create on dashboard)
   const thisWeekSchedule = useMemo(
@@ -147,8 +285,8 @@ export default function DashboardPage() {
     [employees],
   );
 
-  const thisWeekShifts = thisWeekSchedule?.total_shifts ?? 0;
-  const thisWeekHours  = thisWeekSchedule?.total_hours  ?? 0;
+  const thisWeekShifts = scheduleDetail?.total_shifts ?? 0;
+  const thisWeekHours = scheduleDetail?.total_hours ?? 0;
 
   const estWeeklyCost = useMemo(() => {
     if (!scheduleDetail?.shifts || !employees) return null;
@@ -159,17 +297,19 @@ export default function DashboardPage() {
   }, [scheduleDetail, employees]);
 
   const todayShifts = useMemo(
-    () => (scheduleDetail?.shifts ?? [])
-      .filter((s) => s.shift_date === today)
-      .sort((a, b) => a.start_time.localeCompare(b.start_time)),
+    () =>
+      (scheduleDetail?.shifts ?? [])
+        .filter((s) => s.shift_date === today)
+        .sort((a, b) => a.start_time.localeCompare(b.start_time)),
     [scheduleDetail, today],
   );
 
   const recentSchedules = useMemo(
-    () => (schedules ?? [])
-      .slice()
-      .sort((a, b) => b.week_start.localeCompare(a.week_start))
-      .slice(0, 5),
+    () =>
+      (schedules ?? [])
+        .slice()
+        .sort((a, b) => b.week_start.localeCompare(a.week_start))
+        .slice(0, 5),
     [schedules],
   );
 
@@ -209,16 +349,63 @@ export default function DashboardPage() {
           icon={Clock}
           label="Hours scheduled"
           value={thisWeekSchedule ? fmtHours(thisWeekHours) : "—"}
-          sub={thisWeekSchedule ? `avg ${activeEmployees.length ? fmtHours(Math.round(thisWeekHours / activeEmployees.length * 10) / 10) : "—"} / person` : undefined}
+          sub={
+            thisWeekSchedule
+              ? `avg ${activeEmployees.length ? fmtHours(Math.round((thisWeekHours / activeEmployees.length) * 10) / 10) : "—"} / person`
+              : undefined
+          }
           loading={loading}
         />
         <StatCard
           icon={DollarSign}
           label="Est. weekly cost"
           value={estWeeklyCost != null ? fmtCurrency(estWeeklyCost) : "—"}
-          sub={detailLoading ? "calculating…" : estWeeklyCost != null ? "based on hourly rates" : "no schedule yet"}
+          sub={
+            detailLoading
+              ? "calculating…"
+              : estWeeklyCost != null
+                ? "based on hourly rates"
+                : "no schedule yet"
+          }
           loading={loading}
         />
+      </div>
+
+      {/* ── This week's schedule overview ── */}
+      <div className="mt-4 card flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="title-md">This week</h2>
+            <p className="body-sm text-on-surface-faint mt-0.5">{weekLabel}</p>
+          </div>
+          <Link
+            to={`/schedules?week=${thisMonday}`}
+            className="label-md text-primary hover:underline"
+          >
+            Full view
+          </Link>
+        </div>
+
+        {!thisWeekSchedule && !schLoading ? (
+          <div className="flex flex-col items-center justify-center py-6 text-center gap-2">
+            <p className="body-sm text-on-surface-muted">
+              No schedule for this week yet
+            </p>
+            <Link
+              to={`/schedules?week=${thisMonday}`}
+              className="btn btn-secondary py-1.5 text-sm mt-1"
+            >
+              Generate schedule
+            </Link>
+          </div>
+        ) : (
+          <WeekOverview
+            shifts={scheduleDetail?.shifts ?? []}
+            weekDays={weekDays}
+            weekStart={thisMonday}
+            loading={detailLoading || schLoading}
+          />
+        )}
       </div>
 
       {/* ── Middle row ── */}
@@ -250,7 +437,10 @@ export default function DashboardPage() {
                   : "No schedule for this week yet"}
               </p>
               {!thisWeekSchedule && (
-                <Link to="/schedules" className="btn btn-secondary py-1.5 text-sm mt-1">
+                <Link
+                  to="/schedules"
+                  className="btn btn-secondary py-1.5 text-sm mt-1"
+                >
                   Generate schedule
                 </Link>
               )}
@@ -277,11 +467,14 @@ export default function DashboardPage() {
                       <p className="body-sm font-semibold truncate">
                         {shift.employee?.name ?? "Unknown"}
                       </p>
-                      <p className="label-md truncate">{shift.employee?.role}</p>
+                      <p className="label-md truncate">
+                        {shift.employee?.role}
+                      </p>
                     </div>
                     <div className="text-right shrink-0">
                       <p className="body-sm mono text-on-surface">
-                        {formatShiftTime(shift.start_time)} – {formatShiftTime(shift.end_time)}
+                        {formatShiftTime(shift.start_time)} –{" "}
+                        {formatShiftTime(shift.end_time)}
                       </p>
                       <p className="label-md text-on-surface-faint">
                         {fmtHours(shift.duration_hours ?? 0)}
@@ -298,7 +491,10 @@ export default function DashboardPage() {
         <div className="card flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <h2 className="title-md">Team</h2>
-            <Link to="/employees" className="label-md text-primary hover:underline">
+            <Link
+              to="/employees"
+              className="label-md text-primary hover:underline"
+            >
               Manage
             </Link>
           </div>
@@ -310,7 +506,9 @@ export default function DashboardPage() {
 
           {empLoading ? (
             <div className="flex flex-col gap-2">
-              {[1, 2, 3].map((i) => <div key={i} className="skeleton h-5 rounded" />)}
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="skeleton h-5 rounded" />
+              ))}
             </div>
           ) : (
             <RoleBar employees={employees ?? []} />
@@ -322,18 +520,25 @@ export default function DashboardPage() {
       <div className="mt-4 card flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h2 className="title-md">Recent schedules</h2>
-          <Link to="/schedules" className="label-md text-primary hover:underline">
+          <Link
+            to="/schedules"
+            className="label-md text-primary hover:underline"
+          >
             All schedules
           </Link>
         </div>
 
         {schLoading ? (
           <div className="flex flex-col gap-2">
-            {[1, 2, 3].map((i) => <div key={i} className="skeleton h-10 rounded-xl" />)}
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="skeleton h-10 rounded-xl" />
+            ))}
           </div>
         ) : recentSchedules.length === 0 ? (
           <div className="py-6 text-center">
-            <p className="body-sm text-on-surface-muted mb-3">No schedules created yet</p>
+            <p className="body-sm text-on-surface-muted mb-3">
+              No schedules created yet
+            </p>
             <Link to="/schedules" className="btn btn-primary py-2 text-sm">
               Create first schedule
             </Link>
@@ -350,17 +555,20 @@ export default function DashboardPage() {
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="body-sm font-semibold">{getWeekRangeLabel(monday)}</p>
+                      <p className="body-sm font-semibold">
+                        {getWeekRangeLabel(monday)}
+                      </p>
                       {isThisWeek && (
                         <span className="badge badge-success">This week</span>
                       )}
                     </div>
                     <p className="label-md mt-0.5">
-                      {s.total_shifts} shift{s.total_shifts !== 1 ? "s" : ""} · {fmtHours(s.total_hours)}
+                      {s.total_shifts} shift{s.total_shifts !== 1 ? "s" : ""} ·{" "}
+                      {fmtHours(s.total_hours)}
                     </p>
                   </div>
                   <Link
-                    to={`/schedules?id=${s.id}`}
+                    to={`/schedules?week=${s.week_start}`}
                     className="btn btn-ghost py-1.5 text-sm"
                   >
                     View

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -83,16 +83,15 @@ export default function App() {
                 </Route>
               </Route>
 
-              {/* 404 — authenticated users see a proper page, others go to login */}
+              {/* 404 catch-all — show the page directly, no redirect */}
               <Route
-                path="/404"
+                path="*"
                 element={
                   <Suspense fallback={<PageFallback />}>
                     <NotFoundPage />
                   </Suspense>
                 }
               />
-              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </BrowserRouter>
         </ErrorBoundary>
