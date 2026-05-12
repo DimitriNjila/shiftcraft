@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Sparkles, Check, X } from "lucide-react";
+import { Sparkles, Check, X, EyeOff, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -142,12 +142,17 @@ export default function SignupPage() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); 
   const [form, setForm] = useState<SignupForm>({
     fullName: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  }
 
   const set = <K extends keyof SignupForm>(k: K, v: SignupForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -240,15 +245,24 @@ export default function SignupPage() {
                 <label htmlFor="password" className="field-label">
                   Password
                 </label>
+                <div className="relative">
                 <input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={form.password}
                   onChange={(e) => set("password", e.target.value)}
                   className="input-field"
                   placeholder="At least 10 characters"
                   autoComplete="new-password"
                 />
+                <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-faint focus:outline-none cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button> 
+                </div>
 
                 {/* Strength meter */}
                 <div className="flex gap-1 mt-2">
@@ -296,7 +310,7 @@ export default function SignupPage() {
                 <div className="relative">
                   <input
                     id="confirmPassword"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     value={form.confirmPassword}
                     onChange={(e) => set("confirmPassword", e.target.value)}
                     className={`input-field pr-9 ${
