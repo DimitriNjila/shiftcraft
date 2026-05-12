@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, ChevronRight,EyeOff,Eye } from "lucide-react";
+import { Mail, Lock, ChevronRight, EyeOff, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 
