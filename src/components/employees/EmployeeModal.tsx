@@ -39,7 +39,7 @@ export function EmployeeModal({
   useEffect(() => {
     setName(employee?.name ?? "");
     setRole((employee?.role as Role) ?? "Server");
-    setSalary(employee?.salary ?? 30000);
+    setSalary(employee?.salary ?? 15); 
     setMaxHoursPerWeek(employee?.max_hours_per_week ?? 40);
     setError("");
   }, [employee]);
@@ -142,12 +142,12 @@ export function EmployeeModal({
             <input
               id="emp-salary"
               type="number"
-              value={salary}
+              value={salary || ""}
               onChange={(e) => setSalary(Number(e.target.value))}
               className="input-field"
               placeholder="e.g. 30000"
               min="0"
-              step="1"
+              step="0.5"  
             />
           </div>
 
@@ -159,7 +159,7 @@ export function EmployeeModal({
             <input
               id="emp-max-hours"
               type="number"
-              value={maxHoursPerWeek}
+              value={maxHoursPerWeek || ""}
               onChange={(e) => setMaxHoursPerWeek(Number(e.target.value))}
               className="input-field"
               placeholder="e.g. 40"
