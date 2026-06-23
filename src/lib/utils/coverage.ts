@@ -36,10 +36,15 @@ export function computeCoverageGaps(
 
     const dateStr = toDateStr(day);
 
+    // Normalize to HH:MM before comparing — the API can return times as
+    // "HH:MM", "HH:MM:SS", or "HH:MM:SS.ffffff" depending on the backend.
+    const tplStart = template.start_time.slice(0, 5);
+    const tplEnd   = template.end_time.slice(0, 5);
+
     const filled = shifts.filter((s) => {
       if (s.shift_date !== dateStr) return false;
-      if (s.start_time !== template.start_time) return false;
-      if (s.end_time !== template.end_time) return false;
+      if (s.start_time.slice(0, 5) !== tplStart) return false;
+      if (s.end_time.slice(0, 5) !== tplEnd) return false;
       const role = roleById.get(s.employee_id) ?? s.employee?.role;
       return role === template.role;
     }).length;

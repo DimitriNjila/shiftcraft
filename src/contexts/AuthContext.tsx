@@ -1,10 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, use, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
@@ -50,15 +44,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signIn = async (email: string, password: string) => {
-    const {
-      // data,
-      error,
-    } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-    // const { session } = data;
-    // console.log("user token", session?.access_token);
+    const { session } = data;
+    console.log("user token", session?.access_token);
     if (error) throw error;
   };
 
@@ -97,7 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
-  const ctx = useContext(AuthContext);
+  const ctx = use(AuthContext);
   if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
   return ctx;
 };

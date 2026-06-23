@@ -12,6 +12,7 @@ import {
   EmployeeCardSkeleton,
 } from "@/components/employees/EmployeeCard";
 import { EmployeeModal } from "@/components/employees/EmployeeModal";
+import { AvailabilityModal } from "@/components/employees/AvailabilityModal";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
@@ -36,6 +37,7 @@ export default function EmployeesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Employee | undefined>();
   const [deleteTarget, setDeleteTarget] = useState<Employee | undefined>();
+  const [availabilityTarget, setAvailabilityTarget] = useState<Employee | undefined>();
 
   const filtered = (employees ?? []).filter((e) =>
     e.name.toLowerCase().includes(search.toLowerCase()),
@@ -180,6 +182,7 @@ export default function EmployeesPage() {
               employee={employee}
               onEdit={openEdit}
               onDelete={setDeleteTarget}
+              onAvailability={setAvailabilityTarget}
             />
           ))}
         </div>
@@ -193,6 +196,14 @@ export default function EmployeesPage() {
           isPending={isSubmitting}
           onSubmit={handleSubmit}
           onClose={closeModal}
+        />
+      )}
+
+      {/* Availability modal */}
+      {availabilityTarget && (
+        <AvailabilityModal
+          employee={availabilityTarget}
+          onClose={() => setAvailabilityTarget(undefined)}
         />
       )}
 

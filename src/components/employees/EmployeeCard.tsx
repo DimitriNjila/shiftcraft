@@ -1,4 +1,4 @@
-import { Edit2, Trash2 } from "lucide-react";
+import { CalendarDays, Edit2, Trash2 } from "lucide-react";
 import type { Employee } from "@/lib/types/employee";
 
 /* ──────────────────────────────────────────────────────────────
@@ -72,12 +72,14 @@ export interface EmployeeCardProps {
   employee: Employee;
   onEdit: (employee: Employee) => void;
   onDelete: (employee: Employee) => void;
+  onAvailability: (employee: Employee) => void;
 }
 
 export function EmployeeCard({
   employee,
   onEdit,
   onDelete,
+  onAvailability,
 }: EmployeeCardProps) {
   const style = ROLE_STYLE[employee.role] ?? ROLE_STYLE.Server;
   const initials = getInitials(employee.name);
@@ -109,6 +111,14 @@ export function EmployeeCard({
         </span>
 
         <div className="flex gap-1.5">
+          <button
+            onClick={() => onAvailability(employee)}
+            className="btn-icon btn-ghost"
+            aria-label={`Manage availability for ${employee.name}`}
+            title="Manage availability"
+          >
+            <CalendarDays size={14} />
+          </button>
           <button
             onClick={() => onEdit(employee)}
             className="btn-icon btn-ghost"
