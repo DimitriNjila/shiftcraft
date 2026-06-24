@@ -4,7 +4,7 @@ import type { AvailabilityWindow, CreateAvailabilityRequest } from '@/lib/types/
 export const availabilityApi = {
   list: async (employeeId: string): Promise<AvailabilityWindow[]> => {
     const { data } = await apiClient.get<AvailabilityWindow[]>(
-      `/v1/employees/${employeeId}/availability`,
+      `/employees/${employeeId}/availability`,
     );
     return data;
   },
@@ -14,7 +14,7 @@ export const availabilityApi = {
     payload: CreateAvailabilityRequest,
   ): Promise<AvailabilityWindow> => {
     const { data } = await apiClient.post<AvailabilityWindow>(
-      `/v1/employees/${employeeId}/availability`,
+      `/employees/${employeeId}/availability`,
       payload,
     );
     return data;
@@ -22,7 +22,7 @@ export const availabilityApi = {
 
   delete: async (employeeId: string, availabilityId: string): Promise<void> => {
     await apiClient.delete(
-      `/v1/employees/${employeeId}/availability/${availabilityId}`,
+      `/employees/${employeeId}/availability/${availabilityId}`,
     );
   },
 };
