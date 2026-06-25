@@ -224,9 +224,10 @@ export default function SchedulesPage() {
 
       {analysisOpen && (
         <AnalysisModal
-          analysis={analyzeSchedule.data?.analysis}
+          data={analyzeSchedule.data}
           isPending={analyzeSchedule.isPending}
           isError={analyzeSchedule.isError}
+          error={analyzeSchedule.error}
           onRetry={handleAnalyzeRetry}
           onClose={() => setAnalysisOpen(false)}
         />

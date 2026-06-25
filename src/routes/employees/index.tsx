@@ -73,7 +73,7 @@ export default function EmployeesPage() {
   }) => {
     if (editTarget) {
       updateEmployee.mutate(
-        { id: editTarget.id, updates: { name, role } },
+        { id: editTarget.id, updates: { name, role, salary, max_hours_per_week: maxHoursPerWeek } },
         { onSuccess: closeModal },
       );
     } else {

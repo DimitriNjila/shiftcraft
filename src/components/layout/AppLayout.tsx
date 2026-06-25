@@ -2,12 +2,26 @@ import { Suspense, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Menu } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { ErrorMessage } from "@/components/ui/ErrorMessage";
+import { useRestaurant } from "@/lib/hooks/use-restaurant";
 import { Sidebar } from "./Sidebar";
 
 export default function AppLayout() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { status: restaurantStatus, refetch: refetchRestaurant } = useRestaurant();
+
+  if (restaurantStatus === "error") {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <ErrorMessage
+          message="Failed to load workspace"
+          onRetry={() => refetchRestaurant()}
+        />
+      </div>
+    );
+  }
 
   return (
     <>

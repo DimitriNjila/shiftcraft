@@ -21,14 +21,16 @@ const BASE: Employee = {
 function setup(overrides: Partial<Employee> = {}) {
   const onEdit = vi.fn();
   const onDelete = vi.fn();
+  const onAvailability = vi.fn();
   render(
     <EmployeeCard
       employee={{ ...BASE, ...overrides }}
       onEdit={onEdit}
       onDelete={onDelete}
+      onAvailability={onAvailability}
     />,
   );
-  return { onEdit, onDelete };
+  return { onEdit, onDelete, onAvailability };
 }
 
 describe("EmployeeCard", () => {
@@ -55,6 +57,14 @@ describe("EmployeeCard", () => {
   it("shows Inactive badge when is_active is false", () => {
     setup({ is_active: false });
     expect(screen.getByText("Inactive")).toBeInTheDocument();
+  });
+
+  it("calls onAvailability with the employee when the availability button is clicked", async () => {
+    const { onAvailability } = setup();
+    await userEvent.click(
+      screen.getByRole("button", { name: /manage availability for elena kovač/i }),
+    );
+    expect(onAvailability).toHaveBeenCalledWith({ ...BASE });
   });
 
   it("calls onEdit with the employee when the edit button is clicked", async () => {
