@@ -58,10 +58,16 @@ export function useWeekSchedule(restaurantId: string | undefined, weekStart: str
     provision.isPending ||
     (!!resolvedId && detailQuery.status === 'pending');
 
+  // isFetching is true during background refetches too (e.g. right after
+  // generate), not just the initial load. Callers can use this to suppress
+  // derived computations that would flash stale values during revalidation.
+  const isFetching = isLoading || detailQuery.isFetching;
+
   return {
     scheduleId: resolvedId,
     schedule: detailQuery.data,
     isLoading,
+    isFetching,
     error: provision.isError ? provision.error : detailQuery.error,
     refetch: detailQuery.refetch,
   };

@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, ChevronRight, EyeOff, Eye } from "lucide-react";
+import { Mail, Lock, ChevronRight, EyeOff, Eye, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -92,8 +92,9 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false); 
+  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -202,6 +203,18 @@ export default function LoginPage() {
                     {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button> 
                 </div>
+              </div>
+
+              <div className="flex items-center gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={() => setRememberMe((r) => !r)}
+                  aria-label="Keep me signed in"
+                  className="w-4 h-4 rounded flex items-center justify-center shrink-0 border border-surface-highest bg-surface-container transition-colors"
+                >
+                  {rememberMe && <Check size={11} className="text-primary" />}
+                </button>
+                <span className="body-sm text-on-surface-muted">Keep me signed in</span>
               </div>
 
               <button

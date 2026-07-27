@@ -44,10 +44,22 @@ export interface GenerateScheduleResponse {
   status: string;
 }
 
+export type AnalysisScore = "good" | "fair" | "poor";
+
+export interface AnalysisDimension {
+  score: AnalysisScore;
+  details: string;
+}
+
 export interface AnalyzeScheduleResponse {
   schedule_id: string;
   week_start: string;
-  analysis: string;
+  summary: string;
+  fairness: AnalysisDimension;
+  coverage: AnalysisDimension;
+  workload: AnalysisDimension;
+  patterns: string[];
+  recommendations: string[];
 }
 
 export interface CreateShiftRequest {

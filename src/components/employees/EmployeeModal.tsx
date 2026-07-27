@@ -39,7 +39,7 @@ export function EmployeeModal({
   useEffect(() => {
     setName(employee?.name ?? "");
     setRole((employee?.role as Role) ?? "Server");
-    setSalary(employee?.salary ?? 15); 
+    setSalary(employee?.salary ?? 30000);
     setMaxHoursPerWeek(employee?.max_hours_per_week ?? 40);
     setError("");
   }, [employee]);

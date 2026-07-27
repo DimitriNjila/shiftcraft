@@ -180,7 +180,11 @@ describe("SchedulesPage", () => {
 
     it("renders a shift card for an existing shift", () => {
       withSchedule();
-      renderWithRouter(<SchedulesPage />);
+      // Navigate to the week that contains SHIFT (2026-04-27) so the
+      // shift date falls within the rendered week columns.
+      renderWithRouter(<SchedulesPage />, {
+        initialEntries: ["/schedules?week=2026-04-27"],
+      });
       expect(
         screen.getByRole("button", { name: /edit shift/i }),
       ).toBeInTheDocument();
@@ -206,7 +210,9 @@ describe("SchedulesPage", () => {
     it("opens the edit shift modal when a shift card is clicked", async () => {
       withSchedule();
       const user = userEvent.setup();
-      renderWithRouter(<SchedulesPage />);
+      renderWithRouter(<SchedulesPage />, {
+        initialEntries: ["/schedules?week=2026-04-27"],
+      });
 
       await user.click(screen.getByRole("button", { name: /edit shift/i }));
       expect(
@@ -231,7 +237,9 @@ describe("SchedulesPage", () => {
     it("opens the confirm modal when delete is clicked on a shift", async () => {
       withSchedule();
       const user = userEvent.setup();
-      renderWithRouter(<SchedulesPage />);
+      renderWithRouter(<SchedulesPage />, {
+        initialEntries: ["/schedules?week=2026-04-27"],
+      });
 
       const shiftCard = screen.getByRole("button", { name: /edit shift/i });
       await user.hover(shiftCard);

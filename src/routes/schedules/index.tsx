@@ -48,7 +48,7 @@ export default function SchedulesPage() {
   const weekStart = toDateStr(monday);
   const weekDays = getWeekDays(monday);
 
-  const { schedule, isLoading, error, refetch } = useWeekSchedule(
+  const { schedule, isLoading, isFetching, error, refetch } = useWeekSchedule(
     restaurant?.id,
     weekStart,
   );
@@ -153,7 +153,7 @@ export default function SchedulesPage() {
         isAnalyzing={analyzeSchedule.isPending}
       />
 
-      {!isLoading && !error && schedule && templates.length > 0 && (
+      {!isLoading && !isFetching && !error && schedule && templates.length > 0 && (
         <CoverageGaps
           gaps={coverageGaps}
           requiredHours={requiredHours}
@@ -224,9 +224,10 @@ export default function SchedulesPage() {
 
       {analysisOpen && (
         <AnalysisModal
-          analysis={analyzeSchedule.data?.analysis}
+          data={analyzeSchedule.data}
           isPending={analyzeSchedule.isPending}
           isError={analyzeSchedule.isError}
+          error={analyzeSchedule.error}
           onRetry={handleAnalyzeRetry}
           onClose={() => setAnalysisOpen(false)}
         />
