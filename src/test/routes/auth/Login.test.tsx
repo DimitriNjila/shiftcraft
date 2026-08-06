@@ -48,7 +48,7 @@ describe('LoginPage', () => {
     it('renders the sign-in submit button', () => {
       setup();
       expect(
-        screen.getByRole('button', { name: /sign in to shiftcraft/i }),
+        screen.getByRole('button', { name: /sign in to mise en place/i }),
       ).toBeInTheDocument();
     });
 
@@ -63,7 +63,7 @@ describe('LoginPage', () => {
       const { toast } = await import('sonner');
       const { user } = setup();
 
-      await user.click(screen.getByRole('button', { name: /sign in to shiftcraft/i }));
+      await user.click(screen.getByRole('button', { name: /sign in to mise en place/i }));
 
       expect(toast.error).toHaveBeenCalledWith('Email is required');
       expect(mockAuthValue.signIn).not.toHaveBeenCalled();
@@ -74,7 +74,7 @@ describe('LoginPage', () => {
       const { user } = setup();
 
       await user.type(screen.getByLabelText(/work email/i), 'user@test.com');
-      await user.click(screen.getByRole('button', { name: /sign in to shiftcraft/i }));
+      await user.click(screen.getByRole('button', { name: /sign in to mise en place/i }));
 
       expect(toast.error).toHaveBeenCalledWith('Password is required');
       expect(mockAuthValue.signIn).not.toHaveBeenCalled();
@@ -88,7 +88,7 @@ describe('LoginPage', () => {
 
       await user.type(screen.getByLabelText(/work email/i), 'manager@cafe.com');
       await user.type(screen.getByLabelText(/password/i), 'secret123');
-      await user.click(screen.getByRole('button', { name: /sign in to shiftcraft/i }));
+      await user.click(screen.getByRole('button', { name: /sign in to mise en place/i }));
 
       await waitFor(() =>
         expect(mockAuthValue.signIn).toHaveBeenCalledWith('manager@cafe.com', 'secret123'),
@@ -101,7 +101,7 @@ describe('LoginPage', () => {
 
       await user.type(screen.getByLabelText(/work email/i), 'manager@cafe.com');
       await user.type(screen.getByLabelText(/password/i), 'secret123');
-      await user.click(screen.getByRole('button', { name: /sign in to shiftcraft/i }));
+      await user.click(screen.getByRole('button', { name: /sign in to mise en place/i }));
 
       await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/dashboard'));
     });
@@ -113,7 +113,7 @@ describe('LoginPage', () => {
 
       await user.type(screen.getByLabelText(/work email/i), 'bad@test.com');
       await user.type(screen.getByLabelText(/password/i), 'wrongpass');
-      await user.click(screen.getByRole('button', { name: /sign in to shiftcraft/i }));
+      await user.click(screen.getByRole('button', { name: /sign in to mise en place/i }));
 
       await waitFor(() =>
         expect(toast.error).toHaveBeenCalledWith('Invalid credentials'),

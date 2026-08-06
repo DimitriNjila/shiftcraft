@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Search } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Plus, Search, Users } from "lucide-react";
 import { useRestaurant } from "@/lib/hooks/use-restaurant";
 import {
   useEmployees,
@@ -11,13 +11,17 @@ import {
   EmployeeCard,
   EmployeeCardSkeleton,
 } from "@/components/employees/EmployeeCard";
+import { StaffTable } from "@/components/employees/StaffTable";
 import { EmployeeModal } from "@/components/employees/EmployeeModal";
 import { AvailabilityModal } from "@/components/employees/AvailabilityModal";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
+import { usePageMeta } from "@/components/layout/page-meta";
 import type { Employee } from "@/lib/types/employee";
-import { Users } from "lucide-react";
+
+const ROLE_OPTIONS = ["all", "Server", "Cook", "Host", "Manager"] as const;
+type Sort = "name" | "hours" | "rate";
 
 export default function EmployeesPage() {
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant();
@@ -34,29 +38,83 @@ export default function EmployeesPage() {
   const deleteEmployee = useDeleteEmployee();
 
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [sortKey, setSortKey] = useState<Sort>("name");
+  const [view, setView] = useState<"table" | "grid">("table");
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Employee | undefined>();
   const [deleteTarget, setDeleteTarget] = useState<Employee | undefined>();
-  const [availabilityTarget, setAvailabilityTarget] = useState<Employee | undefined>();
-
-  const filtered = (employees ?? []).filter((e) =>
-    e.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const [availabilityTarget, setAvailabilityTarget] = useState<
+    Employee | undefined
+  >();
 
   const openCreate = () => {
     setEditTarget(undefined);
     setModalOpen(true);
   };
-
   const openEdit = (employee: Employee) => {
     setEditTarget(employee);
     setModalOpen(true);
   };
-
   const closeModal = () => {
     setModalOpen(false);
     setEditTarget(undefined);
   };
+
+  usePageMeta({
+    title: "Staff",
+    breadcrumbs: ["Staff", "All"],
+    actions: restaurantId ? (
+      <button
+        type="button"
+        onClick={openCreate}
+        className="btn btn-primary"
+      >
+        <Plus size={14} /> Add staff
+      </button>
+    ) : null,
+  });
+
+  // ── Filter + sort ──
+  const filtered = useMemo(() => {
+    let list = (employees ?? []).filter((e) => {
+      const matchesSearch =
+        search === "" ||
+        e.name.toLowerCase().includes(search.toLowerCase());
+      const matchesRole = roleFilter === "all" || e.role === roleFilter;
+      return matchesSearch && matchesRole;
+    });
+    list = list.slice().sort((a, b) => {
+      if (sortKey === "hours") {
+        return (b.max_hours_per_week ?? 0) - (a.max_hours_per_week ?? 0);
+      }
+      if (sortKey === "rate") return b.salary - a.salary;
+      return a.name.localeCompare(b.name);
+    });
+    return list;
+  }, [employees, search, roleFilter, sortKey]);
+
+  // ── KPI values ──
+  const stats = useMemo(() => {
+    const list = employees ?? [];
+    const active = list.filter((e) => e.is_active);
+    const avgHours =
+      active.length === 0
+        ? 0
+        : active.reduce((s, e) => s + (e.max_hours_per_week ?? 0), 0) /
+          active.length;
+    const avgRate =
+      active.length === 0
+        ? 0
+        : active.reduce((s, e) => s + e.salary, 0) / active.length;
+    return {
+      total: list.length,
+      active: active.length,
+      onLeave: list.length - active.length,
+      avgHours,
+      avgRate,
+    };
+  }, [employees]);
 
   const handleSubmit = ({
     name,
@@ -73,7 +131,15 @@ export default function EmployeesPage() {
   }) => {
     if (editTarget) {
       updateEmployee.mutate(
-        { id: editTarget.id, updates: { name, role, salary, max_hours_per_week: maxHoursPerWeek } },
+        {
+          id: editTarget.id,
+          updates: {
+            name,
+            role,
+            salary,
+            max_hours_per_week: maxHoursPerWeek,
+          },
+        },
         { onSuccess: closeModal },
       );
     } else {
@@ -99,83 +165,230 @@ export default function EmployeesPage() {
   };
 
   const isSubmitting = createEmployee.isPending || updateEmployee.isPending;
+  const noEmployeesYet = !isLoading && (employees?.length ?? 0) === 0;
 
   return (
-    <>
-      {/* Page header */}
-      <div className="page-header">
-        <div>
-          <span className="label-md">People</span>
-          <h1 className="headline-lg mt-1.5">Employees</h1>
-        </div>
-        {restaurantId && (
-          <button
-            onClick={openCreate}
-            className="btn btn-primary py-2.5 text-sm"
-          >
-            <Plus size={15} />
-            Add employee
-          </button>
-        )}
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      {/* KPI strip */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: 14,
+        }}
+      >
+        <KpiCard
+          label="Total staff"
+          value={stats.total}
+          sub={stats.total > 0 ? `${stats.active} active` : "—"}
+          loading={restaurantLoading || isLoading}
+        />
+        <KpiCard
+          label="Active now"
+          value={stats.active}
+          sub={stats.onLeave > 0 ? `${stats.onLeave} inactive` : "All active"}
+          loading={restaurantLoading || isLoading}
+        />
+        <KpiCard
+          label="Avg max hours"
+          value={stats.avgHours > 0 ? `${stats.avgHours.toFixed(1)}h` : "—"}
+          sub="Per week"
+          loading={restaurantLoading || isLoading}
+        />
+        <KpiCard
+          label="Avg hourly"
+          value={stats.avgRate > 0 ? `$${stats.avgRate.toFixed(2)}` : "—"}
+          sub="Compliant"
+          loading={restaurantLoading || isLoading}
+        />
       </div>
 
-      {/* Search bar — only when there are employees */}
-      {(employees?.length ?? 0) > 0 && (
-        <div className="relative mb-5 max-w-xs">
-          <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-faint pointer-events-none"
-          />
+      {/* Toolbar */}
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          alignItems: "center",
+          flexWrap: "wrap",
+          rowGap: 8,
+          padding: "10px 14px",
+          background: "var(--surface-container)",
+          borderRadius: "var(--r-xl)",
+          boxShadow: "inset 0 0 0 1px var(--hairline)",
+        }}
+      >
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flex: 1,
+            minWidth: 200,
+            padding: "6px 10px",
+            background: "var(--surface-lowest)",
+            borderRadius: 8,
+            boxShadow: "inset 0 0 0 1px var(--hairline)",
+          }}
+        >
+          <Search size={15} style={{ color: "var(--on-surface-faint)" }} />
           <input
-            type="search"
+            placeholder="Search by name or email…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search employees…"
-            className="input-field pl-8 text-sm"
-            aria-label="Search employees"
+            aria-label="Search staff"
+            style={{
+              background: "transparent",
+              border: "none",
+              outline: "none",
+              flex: 1,
+              fontSize: 13,
+              color: "var(--on-surface)",
+              fontFamily: "inherit",
+              minWidth: 0,
+            }}
           />
+        </label>
+
+        <select
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+          aria-label="Filter by role"
+          className="input"
+          style={{
+            width: "auto",
+            padding: "8px 10px",
+            fontSize: 12,
+            background: "var(--surface-lowest)",
+          }}
+        >
+          {ROLE_OPTIONS.map((r) => (
+            <option key={r} value={r}>
+              {r === "all" ? "All roles" : r}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={sortKey}
+          onChange={(e) => setSortKey(e.target.value as Sort)}
+          aria-label="Sort"
+          className="input"
+          style={{
+            width: "auto",
+            padding: "8px 10px",
+            fontSize: 12,
+            background: "var(--surface-lowest)",
+          }}
+        >
+          <option value="name">Sort: Name</option>
+          <option value="hours">Sort: Max hours</option>
+          <option value="rate">Sort: Rate</option>
+        </select>
+
+        <div
+          style={{
+            display: "flex",
+            background: "var(--surface-lowest)",
+            borderRadius: 8,
+            padding: 2,
+            boxShadow: "inset 0 0 0 1px var(--hairline)",
+          }}
+        >
+          {(["table", "grid"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setView(v)}
+              style={{
+                padding: "5px 10px",
+                borderRadius: 6,
+                background:
+                  view === v ? "var(--surface-high)" : "transparent",
+                color:
+                  view === v
+                    ? "var(--on-surface)"
+                    : "var(--on-surface-muted)",
+                fontSize: 11,
+                fontWeight: 600,
+                textTransform: "capitalize",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              {v}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
 
       {/* Content */}
       {restaurantLoading || isLoading ? (
-        <div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-          aria-label="Loading employees"
-        >
-          {Array.from({ length: 6 }).map((_, i) => (
-            <EmployeeCardSkeleton key={i} />
-          ))}
-        </div>
+        view === "table" ? (
+          <div
+            className="skeleton"
+            style={{ height: 320, borderRadius: "var(--r-2xl)" }}
+          />
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+              gap: 12,
+            }}
+            aria-label="Loading staff"
+          >
+            {Array.from({ length: 6 }).map((_, i) => (
+              <EmployeeCardSkeleton key={i} />
+            ))}
+          </div>
+        )
       ) : error ? (
         <ErrorMessage
-          message="Failed to load employees"
+          message="Failed to load staff"
           onRetry={() => refetch()}
         />
       ) : !restaurantId ? (
         <ErrorMessage message="No restaurant found. Please complete account setup." />
-      ) : filtered.length === 0 && search ? (
-        <EmptyState
-          title="No results"
-          description={`No employees match "${search}".`}
-        />
-      ) : employees?.length === 0 ? (
+      ) : noEmployeesYet ? (
         <EmptyState
           icon={<Users size={28} className="text-on-surface-faint" />}
-          title="No employees yet"
+          title="No staff yet"
           description="Add your first team member to get started with scheduling."
           action={
             <button
+              type="button"
               onClick={openCreate}
-              className="btn btn-primary py-2.5 text-sm"
+              className="btn btn-primary"
             >
-              <Plus size={15} />
-              Add employee
+              <Plus size={15} /> Add staff
             </button>
           }
         />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          title="No results"
+          description={
+            search
+              ? `No staff match "${search}".`
+              : "No staff match those filters."
+          }
+        />
+      ) : view === "table" ? (
+        <StaffTable
+          employees={filtered}
+          onSelect={openEdit}
+          onEdit={openEdit}
+          onDelete={setDeleteTarget}
+          onAvailability={setAvailabilityTarget}
+        />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+            gap: 12,
+          }}
+        >
           {filtered.map((employee) => (
             <EmployeeCard
               key={employee.id}
@@ -188,7 +401,7 @@ export default function EmployeesPage() {
         </div>
       )}
 
-      {/* Create / Edit modal */}
+      {/* Modals */}
       {modalOpen && restaurantId && (
         <EmployeeModal
           employee={editTarget}
@@ -198,19 +411,15 @@ export default function EmployeesPage() {
           onClose={closeModal}
         />
       )}
-
-      {/* Availability modal */}
       {availabilityTarget && (
         <AvailabilityModal
           employee={availabilityTarget}
           onClose={() => setAvailabilityTarget(undefined)}
         />
       )}
-
-      {/* Delete confirmation */}
       {deleteTarget && (
         <ConfirmModal
-          title="Remove employee"
+          title="Remove staff member"
           description={`Remove ${deleteTarget.name} from your team? This cannot be undone.`}
           confirmLabel="Remove"
           isPending={deleteEmployee.isPending}
@@ -218,6 +427,49 @@ export default function EmployeesPage() {
           onCancel={() => setDeleteTarget(undefined)}
         />
       )}
-    </>
+    </div>
+  );
+}
+
+function KpiCard({
+  label,
+  value,
+  sub,
+  loading,
+}: {
+  label: string;
+  value: string | number;
+  sub?: string;
+  loading?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        background: "var(--surface-container)",
+        borderRadius: "var(--r-xl)",
+        boxShadow: "inset 0 0 0 1px var(--hairline)",
+        padding: "16px 20px",
+      }}
+    >
+      <div className="label-md">{label}</div>
+      {loading ? (
+        <div
+          className="skeleton"
+          style={{ height: 28, width: 80, marginTop: 6, borderRadius: 4 }}
+        />
+      ) : (
+        <div className="headline-lg mono" style={{ marginTop: 6 }}>
+          {value}
+        </div>
+      )}
+      {sub && !loading && (
+        <div
+          className="body-sm"
+          style={{ color: "var(--on-surface-muted)", marginTop: 2 }}
+        >
+          {sub}
+        </div>
+      )}
+    </div>
   );
 }

@@ -1,5 +1,5 @@
-import { useState, useEffect, useId } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Plus, Upload } from "lucide-react";
 import { useRestaurant } from "@/lib/hooks/use-restaurant";
 import {
   useShiftTemplates,
@@ -7,294 +7,138 @@ import {
 } from "@/lib/hooks/use-templates";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
-import { toHHMM, toHHMMSS } from "@/lib/utils/dates";
-import type { ShiftTemplateEntry, Role } from "@/lib/types/template";
-
-// ── Constants ─────────────────────────────────────────────────
-
-const ROLES: Role[] = ["Server", "Cook", "Host", "Manager"];
-
-const DAYS = [
-  { num: 1, label: "Monday" },
-  { num: 2, label: "Tuesday" },
-  { num: 3, label: "Wednesday" },
-  { num: 4, label: "Thursday" },
-  { num: 5, label: "Friday" },
-  { num: 6, label: "Saturday" },
-  { num: 7, label: "Sunday" },
-];
-
-const DEFAULT_ENTRY: Omit<ShiftTemplateEntry, "day_of_week"> = {
-  start_time: "09:00:00",
-  end_time: "17:00:00",
-  role: "Server",
-  count: 1,
-};
-
-// ── Local row type (adds a client-side key for stable React keys) ──
-
-interface TemplateRow extends ShiftTemplateEntry {
-  _key: string;
-}
-
-let _seq = 0;
-function makeKey() {
-  return `row-${++_seq}`;
-}
-
-function toRows(entries: ShiftTemplateEntry[]): TemplateRow[] {
-  return entries.map((e) => ({ ...e, _key: makeKey() }));
-}
-
-function toEntries(rows: TemplateRow[]): ShiftTemplateEntry[] {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  return rows.map(({ _key: _, ...entry }) => entry);
-}
-
-// ── Template row component ─────────────────────────────────────
-
-interface RowProps {
-  row: TemplateRow;
-  onChange: (row: TemplateRow) => void;
-  onDelete: () => void;
-}
-
-function TemplateRowEditor({ row, onChange, onDelete }: RowProps) {
-  const startId = useId();
-  const endId = useId();
-  const countId = useId();
-
-  return (
-    <div className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-surface-highest group">
-      {/* Role selector */}
-      <div className="flex gap-1 shrink-0">
-        {ROLES.map((r) => (
-          <button
-            key={r}
-            type="button"
-            onClick={() => onChange({ ...row, role: r })}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border-none cursor-pointer ${
-              row.role === r
-                ? "bg-surface-lowest shadow-[inset_0_0_0_1.5px_var(--color-primary-fixed)] text-on-surface"
-                : "text-on-surface-muted hover:text-on-surface"
-            }`}
-          >
-            {r}
-          </button>
-        ))}
-      </div>
-
-      <div className="w-px h-5 bg-surface-highest shrink-0" />
-
-      {/* Start time */}
-      <div className="flex flex-col items-start gap-0.5 shrink-0">
-        <label htmlFor={startId} className="label-md" style={{ fontSize: 9 }}>
-          START
-        </label>
-        <input
-          id={startId}
-          type="time"
-          value={toHHMM(row.start_time)}
-          onChange={(e) =>
-            onChange({ ...row, start_time: toHHMMSS(e.target.value) })
-          }
-          className="input-field py-1 px-2 text-[12px] w-22.5"
-        />
-      </div>
-
-      {/* End time */}
-      <div className="flex flex-col items-start gap-0.5 shrink-0">
-        <label htmlFor={endId} className="label-md" style={{ fontSize: 9 }}>
-          END
-        </label>
-        <input
-          id={endId}
-          type="time"
-          value={toHHMM(row.end_time)}
-          onChange={(e) =>
-            onChange({ ...row, end_time: toHHMMSS(e.target.value) })
-          }
-          className="input-field py-1 px-2 text-[12px] w-22.5"
-        />
-      </div>
-
-      <div className="w-px h-5 bg-surface-highest shrink-0" />
-
-      {/* Count stepper */}
-      <div className="flex flex-col items-start gap-0.5 shrink-0">
-        <label htmlFor={countId} className="label-md" style={{ fontSize: 9 }}>
-          STAFF
-        </label>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() =>
-              onChange({ ...row, count: Math.max(1, row.count - 1) })
-            }
-            className="btn-icon btn-ghost w-6 h-6 text-[14px] leading-none"
-            aria-label="Decrease count"
-          >
-            −
-          </button>
-          <span
-            id={countId}
-            className="mono text-[13px] font-semibold w-4 text-center"
-          >
-            {row.count}
-          </span>
-          <button
-            type="button"
-            onClick={() => onChange({ ...row, count: row.count + 1 })}
-            className="btn-icon btn-ghost w-6 h-6 text-[14px] leading-none"
-            aria-label="Increase count"
-          >
-            +
-          </button>
-        </div>
-      </div>
-
-      {/* Delete */}
-      <button
-        type="button"
-        onClick={onDelete}
-        className="ml-auto btn-icon btn-ghost opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-        aria-label="Remove slot"
-      >
-        <Trash2 size={14} />
-      </button>
-    </div>
-  );
-}
-
-// ── Day section ────────────────────────────────────────────────
-
-interface DaySectionProps {
-  dayNum: number;
-  label: string;
-  rows: TemplateRow[];
-  onAdd: () => void;
-  onChange: (row: TemplateRow) => void;
-  onDelete: (key: string) => void;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function DaySection({
-  dayNum: _,
-  label,
-  rows,
-  onAdd,
-  onChange,
-  onDelete,
-}: DaySectionProps) {
-  return (
-    <div className="mb-6">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="title-sm text-on-surface">{label}</h3>
-        <button
-          type="button"
-          onClick={onAdd}
-          className="btn btn-ghost text-xs gap-1 py-1"
-        >
-          <Plus size={12} />
-          Add slot
-        </button>
-      </div>
-
-      {rows.length === 0 ? (
-        <p className="body-sm text-on-surface-faint px-1">
-          No shifts scheduled
-        </p>
-      ) : (
-        <div className="flex flex-col gap-1.5">
-          {rows.map((row) => (
-            <TemplateRowEditor
-              key={row._key}
-              row={row}
-              onChange={onChange}
-              onDelete={() => onDelete(row._key)}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Page ───────────────────────────────────────────────────────
+import { TemplateCard } from "@/components/shift-templates/TemplateCard";
+import { TemplateModal } from "@/components/shift-templates/TemplateModal";
+import { usePageMeta } from "@/components/layout/page-meta";
+import {
+  dayRangeLabel,
+  groupEntries,
+  ungroupTemplates,
+  type TemplateGroup,
+} from "@/lib/utils/templates";
 
 export default function TemplatesPage() {
   const { data: restaurant } = useRestaurant();
-  const {
-    data: record,
-    status,
-    // error,
-    refetch,
-  } = useShiftTemplates(restaurant?.id);
+  const { data: record, status, refetch } = useShiftTemplates(restaurant?.id);
   const saveTemplates = useSaveShiftTemplates();
 
-  const [rows, setRows] = useState<TemplateRow[]>([]);
-  const [isDirty, setIsDirty] = useState(false);
+  const [groups, setGroups] = useState<TemplateGroup[]>([]);
+  const [modal, setModal] = useState<TemplateGroup | "new" | null>(null);
 
-  // Sync local state when server data loads
   useEffect(() => {
     if (status === "success") {
-      setRows(record ? toRows(record.templates) : []);
-      setIsDirty(false);
+      setGroups(record ? groupEntries(record.templates) : []);
     }
   }, [status, record]);
 
-  function mutate(updater: (prev: TemplateRow[]) => TemplateRow[]) {
-    setRows(updater);
-    setIsDirty(true);
-  }
+  const activeCount = groups.filter((g) => g.days.length > 0).length;
+  const weeklyHours = groups.reduce(
+    (a, g) =>
+      a +
+      (durationHours(g.start_time, g.end_time) * g.count * g.days.length),
+    0,
+  );
 
-  function addRow(dayNum: number) {
-    mutate((prev) => [
-      ...prev,
-      { ...DEFAULT_ENTRY, day_of_week: dayNum, _key: makeKey() },
-    ]);
-  }
+  usePageMeta({
+    title: "Shift templates",
+    breadcrumbs: ["Schedule", "Templates"],
+    actions: (
+      <button
+        type="button"
+        className="btn btn-primary"
+        onClick={() => setModal("new")}
+      >
+        <Plus size={14} /> New template
+      </button>
+    ),
+  });
 
-  function updateRow(updated: TemplateRow) {
-    mutate((prev) => prev.map((r) => (r._key === updated._key ? updated : r)));
-  }
+  const grouped = useMemo(() => {
+    const byLabel = new Map<string, TemplateGroup[]>();
+    for (const g of groups) {
+      const key = dayRangeLabel(g.days);
+      const arr = byLabel.get(key) ?? [];
+      arr.push(g);
+      byLabel.set(key, arr);
+    }
+    return Array.from(byLabel.entries()).map(([key, items]) => ({
+      key,
+      items,
+    }));
+  }, [groups]);
 
-  function deleteRow(key: string) {
-    mutate((prev) => prev.filter((r) => r._key !== key));
-  }
+  const commit = (next: TemplateGroup[]) => {
+    setGroups(next);
+    if (restaurant?.id) {
+      saveTemplates.mutate({
+        restaurant_id: restaurant.id,
+        templates: ungroupTemplates(next),
+      });
+    }
+  };
 
-  function handleSave() {
-    if (!restaurant?.id) return;
-    saveTemplates.mutate(
-      { restaurant_id: restaurant.id, templates: toEntries(rows) },
-      { onSuccess: () => setIsDirty(false) },
-    );
-  }
+  const upsert = (g: TemplateGroup) => {
+    const exists = groups.some((x) => x.id === g.id);
+    const next = exists
+      ? groups.map((x) => (x.id === g.id ? g : x))
+      : [...groups, g];
+    commit(next);
+    setModal(null);
+  };
+
+  const remove = (id: string) => {
+    commit(groups.filter((x) => x.id !== id));
+    setModal(null);
+  };
 
   return (
-    <>
-      <div className="page-header">
-        <div>
-          <span className="label-md">Recurring patterns</span>
-          <h1 className="headline-lg mt-1.5">Templates</h1>
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      {/* Stat strip */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          padding: "14px 18px",
+          background: "var(--surface-container)",
+          borderRadius: "var(--r-xl)",
+          boxShadow: "inset 0 0 0 1px var(--hairline)",
+        }}
+      >
+        <div style={{ display: "flex", gap: 24 }}>
+          <Stat label="Templates" value={String(groups.length)} />
+          <Stat
+            label="Active"
+            value={String(activeCount)}
+            accent
+          />
+          <Stat
+            label="Weekly hours"
+            value={`${Math.round(weeklyHours)}h`}
+          />
         </div>
-
+        <div style={{ flex: 1 }} />
+        {saveTemplates.isPending && (
+          <span
+            className="label-sm"
+            style={{ color: "var(--on-surface-muted)" }}
+          >
+            Saving…
+          </span>
+        )}
+        <button type="button" className="btn btn-secondary" disabled>
+          <Upload size={14} /> Import
+        </button>
         <button
           type="button"
-          onClick={handleSave}
-          disabled={!isDirty || saveTemplates.isPending || !restaurant?.id}
-          className="btn btn-primary py-2.5 text-sm"
+          className="btn btn-primary"
+          onClick={() => setModal("new")}
         >
-          {saveTemplates.isPending ? "Saving…" : "Save changes"}
+          <Plus size={14} /> New template
         </button>
       </div>
 
-      <p className="body-sm text-on-surface-muted mb-8 max-w-xl">
-        Define the shift pattern the auto-generator will use. The generator
-        matches employees to open slots based on role, rest rules, and weekly
-        hour caps.
-      </p>
-
+      {/* Content */}
       {status === "pending" && (
         <div className="flex justify-center py-20">
           <LoadingSpinner size={28} />
@@ -308,21 +152,202 @@ export default function TemplatesPage() {
         />
       )}
 
-      {status === "success" && (
-        <div className="max-w-3xl">
-          {DAYS.map(({ num, label }) => (
-            <DaySection
-              key={num}
-              dayNum={num}
-              label={label}
-              rows={rows.filter((r) => r.day_of_week === num)}
-              onAdd={() => addRow(num)}
-              onChange={updateRow}
-              onDelete={deleteRow}
-            />
-          ))}
-        </div>
+      {status === "success" && groups.length === 0 && (
+        <TemplatesEmpty
+          onNew={() => setModal("new")}
+          onImport={() => {
+            /* Stage 5 will wire /import route */
+          }}
+        />
       )}
-    </>
+
+      {status === "success" &&
+        grouped.map((g) => (
+          <div key={g.key}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                gap: 10,
+                padding: "4px 4px 10px",
+              }}
+            >
+              <div className="title-md">{g.key}</div>
+              <div className="label-sm" style={{ fontSize: 10 }}>
+                {g.items.length} template{g.items.length !== 1 ? "s" : ""}
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {g.items.map((t) => (
+                <TemplateCard
+                  key={t.id}
+                  group={t}
+                  onEdit={() => setModal(t)}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+
+      {modal && (
+        <TemplateModal
+          group={modal === "new" ? undefined : modal}
+          onSave={upsert}
+          onDelete={remove}
+          onClose={() => setModal(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
+  return (
+    <div>
+      <div className="label-sm" style={{ fontSize: 10 }}>
+        {label}
+      </div>
+      <div
+        className="title-md mono"
+        style={{ color: accent ? "var(--accent)" : "var(--on-surface)" }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+/** Hours between two HH:MM:SS times. */
+function durationHours(start: string, end: string): number {
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  return eh + em / 60 - sh - sm / 60;
+}
+
+/* ─── Empty state ─── */
+
+function TemplatesEmpty({
+  onNew,
+  onImport,
+}: {
+  onNew: () => void;
+  onImport: () => void;
+}) {
+  return (
+    <div
+      style={{
+        background: "var(--surface-container)",
+        borderRadius: "var(--r-2xl)",
+        boxShadow: "inset 0 0 0 1px var(--hairline)",
+        padding: "72px 32px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        textAlign: "center",
+      }}
+    >
+      <div
+        style={{
+          position: "relative",
+          width: 200,
+          height: 96,
+          marginBottom: 28,
+        }}
+      >
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: i * 26,
+              top: i * 10,
+              width: 148,
+              height: 64,
+              borderRadius: 12,
+              background:
+                i === 2 ? "var(--surface-lowest)" : "var(--surface-high)",
+              boxShadow: i === 2 ? "var(--shadow-ambient)" : "none",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "0 14px",
+              opacity: 0.4 + i * 0.3,
+            }}
+          >
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                background:
+                  i === 2
+                    ? "color-mix(in oklab, var(--accent-fixed) 55%, var(--surface-high))"
+                    : "var(--surface-highest)",
+              }}
+            />
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  height: 7,
+                  width: "70%",
+                  borderRadius: 4,
+                  background: "var(--surface-highest)",
+                }}
+              />
+              <div
+                style={{
+                  height: 5,
+                  width: "45%",
+                  borderRadius: 4,
+                  background: "var(--surface-highest)",
+                  marginTop: 6,
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="headline-md">Build your week once</div>
+      <div
+        className="body-md"
+        style={{
+          color: "var(--on-surface-muted)",
+          maxWidth: 420,
+          marginTop: 8,
+        }}
+      >
+        Templates are the recurring shifts your café runs on — opening bar,
+        weekend brunch, close. Define them once and every new schedule starts
+        90% done.
+      </div>
+      <div style={{ display: "flex", gap: 10, marginTop: 26 }}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={onNew}
+        >
+          <Plus size={14} /> Create a template
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={onImport}
+          disabled
+        >
+          <Upload size={14} /> Import (coming soon)
+        </button>
+      </div>
+      <div className="label-sm" style={{ marginTop: 18, fontSize: 10 }}>
+        Most cafés start with 6–10 templates
+      </div>
+    </div>
   );
 }

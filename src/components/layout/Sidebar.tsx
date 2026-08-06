@@ -1,63 +1,49 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
-  Users,
   CalendarDays,
-  Layers,
-  Settings2,
-  ChevronLeft,
-  ChevronRight,
+  Copy,
+  Users,
+  Settings as SettingsIcon,
   LogOut,
   X,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { Avatar } from "@/components/ui/Avatar";
+import { BrandMark, Wordmark } from "@/components/ui/BrandMark";
 
-/* ──────────────────────────────────────────────────────────────
-   Nav items
-   ────────────────────────────────────────────────────────────── */
-const NAV_ITEMS = [
-  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/employees", icon: Users, label: "Employees" },
-  { to: "/schedules", icon: CalendarDays, label: "Schedules" },
-  { to: "/templates", icon: Layers, label: "Templates" },
-  { to: "/settings", icon: Settings2, label: "Settings" },
-] as const;
-
-/* ──────────────────────────────────────────────────────────────
-   Helpers
-   ────────────────────────────────────────────────────────────── */
-function getInitials(name?: string, email?: string): string {
-  if (name) {
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2)
-      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    return parts[0][0].toUpperCase();
-  }
-  return email ? email[0].toUpperCase() : "?";
+interface NavDef {
+  to: string;
+  icon: React.ElementType;
+  label: string;
+  isNew?: boolean;
+  badge?: number;
 }
 
-/* ──────────────────────────────────────────────────────────────
-   Sidebar
-   ────────────────────────────────────────────────────────────── */
+const NAV_ITEMS: NavDef[] = [
+  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/schedules", icon: CalendarDays, label: "Schedule" },
+  { to: "/templates", icon: Copy, label: "Templates", isNew: true },
+  { to: "/employees", icon: Users, label: "Staff" },
+  { to: "/settings", icon: SettingsIcon, label: "Settings" },
+];
+
 export interface SidebarProps {
-  collapsed: boolean;
-  onToggleCollapse: () => void;
+  rail: boolean;
   mobileOpen: boolean;
   onMobileClose: () => void;
 }
 
-export function Sidebar({
-  collapsed,
-  onToggleCollapse,
-  mobileOpen,
-  onMobileClose,
-}: SidebarProps) {
+export function Sidebar({ rail, mobileOpen, onMobileClose }: SidebarProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const fullName = user?.user_metadata?.full_name as string | undefined;
-  const email = user?.email;
-  const initials = getInitials(fullName, email);
+  const fullName =
+    (user?.user_metadata?.full_name as string | undefined) ??
+    user?.email?.split("@")[0] ??
+    "User";
+  const role =
+    (user?.user_metadata?.role as string | undefined) ?? "General Manager";
 
   const handleSignOut = async () => {
     await signOut();
@@ -65,123 +51,177 @@ export function Sidebar({
   };
 
   return (
-    <aside className={`sidebar${mobileOpen ? " sidebar-open" : ""}`}>
-      {/* ── Header ── */}
-      <div
-        className={`flex items-center ${collapsed ? "justify-center px-4" : "justify-between px-5"} py-5`}
-      >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="brand-logo-mark shrink-0">S</div>
-          {!collapsed && (
-            <span className="font-display font-bold text-sm tracking-[-0.01em] truncate">
-              Shiftcraft
-            </span>
-          )}
-        </div>
-
-        {!collapsed && (
-          <button
-            onClick={onToggleCollapse}
-            className="btn-icon btn-ghost shrink-0 hidden md:inline-flex"
-            aria-label="Collapse sidebar"
-          >
-            <ChevronLeft size={16} />
-          </button>
-        )}
-      </div>
-
-      {/* Expand button (rail mode, desktop only) */}
-      {collapsed && (
-        <div className="flex justify-center mb-1">
-          <button
-            onClick={onToggleCollapse}
-            className="btn-icon btn-ghost hidden md:inline-flex"
-            aria-label="Expand sidebar"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      )}
-
+    <aside
+      className={`sidebar${mobileOpen ? " sidebar-open" : ""}`}
+      style={{
+        padding: rail ? "16px 10px" : "18px 12px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 18,
+      }}
+    >
       {/* Close button (mobile only) */}
       <button
         onClick={onMobileClose}
-        className="btn-icon btn-ghost absolute top-4 right-4 md:hidden"
+        className="btn btn-icon btn-ghost md:hidden"
         aria-label="Close navigation"
+        style={{ position: "absolute", top: 12, right: 12, zIndex: 5 }}
       >
         <X size={18} />
       </button>
 
-      <div className="divider mx-4 mb-3" />
+      {/* Brand row */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: rail ? "4px" : "4px 8px",
+        }}
+      >
+        <BrandMark size={26} />
+        {!rail && <Wordmark size={15.5} showVersion />}
+      </div>
 
-      {/* ── Nav ── */}
+      {/* Nav */}
       <nav
-        className="flex-1 flex flex-col gap-0.5 px-2 overflow-y-auto"
+        style={{ display: "flex", flexDirection: "column", gap: 2 }}
         aria-label="Main navigation"
       >
-        {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
+        {!rail && (
+          <div
+            className="label-sm"
+            style={{ padding: "6px 12px 4px", fontSize: 9 }}
+          >
+            Workspace
+          </div>
+        )}
+        {NAV_ITEMS.map(({ to, icon: Icon, label, isNew, badge }) => (
           <NavLink
             key={to}
             to={to}
             onClick={onMobileClose}
+            title={rail ? label : undefined}
             className={({ isActive }) =>
-              `nav-item${collapsed ? " nav-item-rail" : ""}${isActive ? " nav-item-active" : ""}`
+              `nav-item${rail ? " nav-item-rail" : ""}${
+                isActive ? " nav-item-active" : ""
+              }`
             }
           >
             {({ isActive }) => (
               <>
                 <Icon
-                  size={18}
-                  className={`shrink-0 transition-colors ${isActive ? "text-primary" : ""}`}
+                  size={19}
+                  strokeWidth={isActive ? 2 : 1.7}
+                  style={{
+                    flexShrink: 0,
+                    color: isActive
+                      ? "var(--on-surface)"
+                      : "var(--on-surface-muted)",
+                  }}
                 />
-                {!collapsed && <span>{label}</span>}
+                {!rail && (
+                  <span style={{ flex: 1, textAlign: "left" }}>{label}</span>
+                )}
+                {!rail && isNew && (
+                  <span
+                    style={{
+                      background:
+                        "color-mix(in oklab, var(--accent-fixed) 55%, var(--surface-high))",
+                      color: "var(--on-surface)",
+                      borderRadius: 999,
+                      fontSize: 8.5,
+                      fontWeight: 700,
+                      fontFamily: "var(--font-label)",
+                      padding: "2px 7px",
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    New
+                  </span>
+                )}
+                {!rail && badge != null && (
+                  <span
+                    style={{
+                      background: "var(--tertiary-fixed-dim)",
+                      color: "var(--on-surface)",
+                      borderRadius: 999,
+                      fontSize: 10,
+                      fontWeight: 600,
+                      fontFamily: "var(--font-label)",
+                      padding: "2px 7px",
+                      minWidth: 18,
+                      textAlign: "center",
+                    }}
+                  >
+                    {badge}
+                  </span>
+                )}
               </>
             )}
           </NavLink>
         ))}
       </nav>
 
-      {/* ── User area ── */}
-      <div className="mt-auto pt-3 pb-4 px-2">
-        <div className="divider mb-3" />
+      <div style={{ flex: 1 }} />
 
-        {collapsed ? (
+      {/* User card */}
+      {!rail ? (
+        <div
+          style={{
+            padding: 9,
+            background: "var(--surface-lowest)",
+            borderRadius: 10,
+            boxShadow:
+              "inset 0 0 0 1px var(--hairline), 0 1px 2px rgba(28,27,27,0.04)",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <Avatar name={fullName} size={30} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              className="title-sm"
+              style={{
+                fontSize: 13,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {fullName}
+            </div>
+            <div className="label-sm">{role}</div>
+          </div>
           <button
             onClick={handleSignOut}
-            className="nav-item nav-item-rail w-full"
-            aria-label="Sign out"
+            className="btn btn-icon btn-ghost"
+            style={{ width: 28, height: 28 }}
             title="Sign out"
+            aria-label="Sign out"
           >
-            <LogOut size={17} className="shrink-0" />
+            <LogOut size={15} />
           </button>
-        ) : (
-          <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl">
-            <div className="avatar w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container text-[11px] shrink-0">
-              {initials}
-            </div>
-            <div className="flex-1 min-w-0">
-              {fullName && (
-                <p className="text-[12.5px] font-semibold font-body leading-none truncate mb-0.5">
-                  {fullName}
-                </p>
-              )}
-              {email && (
-                <p className="text-[10.5px] text-on-surface-faint font-label truncate">
-                  {email}
-                </p>
-              )}
-            </div>
-            <button
-              onClick={handleSignOut}
-              className="btn-icon btn-ghost shrink-0 cursor-pointer"
-              aria-label="Sign out"
-              title="Sign out"
-            >
-              <LogOut size={15} />
-            </button>
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <button
+          onClick={handleSignOut}
+          title="Sign out"
+          aria-label="Sign out"
+          style={{
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <Avatar name={fullName} size={34} />
+        </button>
+      )}
     </aside>
   );
 }

@@ -1,72 +1,37 @@
 import { CalendarDays, Edit2, Trash2 } from "lucide-react";
 import type { Employee } from "@/lib/types/employee";
-
-/* ──────────────────────────────────────────────────────────────
-   Role colours
-   ────────────────────────────────────────────────────────────── */
-const ROLE_STYLE: Record<
-  string,
-  { avatarBg: string; avatarText: string; chipBg: string; chipText: string }
-> = {
-  Manager: {
-    avatarBg: "bg-primary-fixed",
-    avatarText: "text-primary",
-    chipBg: "bg-primary-fixed",
-    chipText: "text-primary",
-  },
-  Server: {
-    avatarBg: "bg-secondary-container",
-    avatarText: "text-on-secondary-container",
-    chipBg: "bg-secondary-container",
-    chipText: "text-on-secondary-container",
-  },
-  Cook: {
-    avatarBg: "bg-warning-container",
-    avatarText: "text-warning",
-    chipBg: "bg-warning-container",
-    chipText: "text-warning",
-  },
-  Host: {
-    avatarBg: "bg-tertiary-fixed",
-    avatarText: "text-[#8b1d18]",
-    chipBg: "bg-tertiary-fixed",
-    chipText: "text-[#8b1d18]",
-  },
-};
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2)
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  return name.slice(0, 2).toUpperCase();
-}
+import { Avatar } from "@/components/ui/Avatar";
+import { roleHue } from "@/lib/utils/roles";
 
 /* ──────────────────────────────────────────────────────────────
    Skeleton
    ────────────────────────────────────────────────────────────── */
 export function EmployeeCardSkeleton() {
   return (
-    <div className="card flex flex-col gap-4">
-      <div className="flex items-center gap-3">
-        <div className="skeleton w-10 h-10 rounded-full shrink-0" />
-        <div className="flex-1 flex flex-col gap-1.5">
-          <div className="skeleton h-3.5 w-32 rounded" />
-          <div className="skeleton h-2.5 w-20 rounded" />
+    <div
+      className="card"
+      style={{ display: "flex", flexDirection: "column", gap: 16 }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div
+          className="skeleton"
+          style={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0 }}
+        />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+          <div className="skeleton" style={{ height: 14, width: 128, borderRadius: 4 }} />
+          <div className="skeleton" style={{ height: 10, width: 80, borderRadius: 4 }} />
         </div>
       </div>
-      <div className="flex items-center justify-between pt-1">
-        <div className="skeleton h-5 w-16 rounded-full" />
-        <div className="flex gap-1.5">
-          <div className="skeleton w-8 h-8 rounded-[10px]" />
-          <div className="skeleton w-8 h-8 rounded-[10px]" />
-        </div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <div className="skeleton" style={{ height: 42, flex: 1, borderRadius: 8 }} />
+        <div className="skeleton" style={{ height: 42, flex: 1, borderRadius: 8 }} />
       </div>
     </div>
   );
 }
 
 /* ──────────────────────────────────────────────────────────────
-   Card
+   Card (grid view)
    ────────────────────────────────────────────────────────────── */
 export interface EmployeeCardProps {
   employee: Employee;
@@ -81,54 +46,119 @@ export function EmployeeCard({
   onDelete,
   onAvailability,
 }: EmployeeCardProps) {
-  const style = ROLE_STYLE[employee.role] ?? ROLE_STYLE.Server;
-  const initials = getInitials(employee.name);
-
+  const hue = roleHue(employee.role);
   return (
-    <div className="card flex flex-col gap-4">
-      {/* Top row: avatar + name */}
-      <div className="flex items-center gap-3">
-        <div
-          className={`avatar w-10 h-10 rounded-full text-[13px] font-semibold shrink-0 ${style.avatarBg} ${style.avatarText}`}
-        >
-          {initials}
+    <div
+      className="card"
+      style={{
+        transition: "transform 0.14s ease",
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-2px)")}
+      onMouseLeave={(e) => (e.currentTarget.style.transform = "none")}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <Avatar name={employee.name} size={44} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            className="title-sm"
+            style={{
+              fontSize: 14,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {employee.name}
+          </div>
+          <div className="label-sm" style={{ fontSize: 10 }}>
+            {employee.role}
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="title-sm truncate">{employee.name}</p>
-          <p className="body-sm text-on-surface-muted">{employee.role}</p>
-          <p className="body-sm text-on-surface-muted">
-            Rate: ${employee.salary}
-          </p>
+        <span
+          className="chip"
+          style={{
+            background: `oklch(0.88 0.04 ${hue})`,
+            color: `oklch(0.3 0.08 ${hue})`,
+          }}
+        >
+          {employee.role}
+        </span>
+      </div>
+
+      <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+        <div style={{ flex: 1 }}>
+          <div className="label-sm" style={{ fontSize: 9 }}>
+            Max hours
+          </div>
+          <div className="title-md mono" style={{ fontSize: 15 }}>
+            {employee.max_hours_per_week ?? 40}h
+          </div>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div className="label-sm" style={{ fontSize: 9 }}>
+            Rate
+          </div>
+          <div className="title-md mono" style={{ fontSize: 15 }}>
+            ${employee.salary}
+          </div>
         </div>
       </div>
 
-      {/* Bottom row: status + actions */}
-      <div className="flex items-center justify-between">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginTop: 14,
+          paddingTop: 12,
+          boxShadow: "inset 0 1px var(--hairline)",
+        }}
+      >
         <span
-          className={`badge ${employee.is_active ? "badge-success" : "badge-inactive"}`}
+          className="chip"
+          style={{
+            background: employee.is_active
+              ? "color-mix(in oklab, var(--accent-fixed) 50%, var(--surface-high))"
+              : "var(--surface-high)",
+            color: employee.is_active
+              ? "var(--on-surface)"
+              : "var(--on-surface-muted)",
+          }}
         >
+          <span
+            className="chip-dot"
+            style={{
+              background: employee.is_active
+                ? "var(--accent)"
+                : "var(--on-surface-faint)",
+            }}
+          />
           {employee.is_active ? "Active" : "Inactive"}
         </span>
 
-        <div className="flex gap-1.5">
+        <div style={{ display: "flex", gap: 4 }}>
           <button
+            type="button"
             onClick={() => onAvailability(employee)}
-            className="btn-icon btn-ghost"
+            className="btn btn-icon btn-ghost"
             aria-label={`Manage availability for ${employee.name}`}
             title="Manage availability"
           >
             <CalendarDays size={14} />
           </button>
           <button
+            type="button"
             onClick={() => onEdit(employee)}
-            className="btn-icon btn-ghost"
+            className="btn btn-icon btn-ghost"
             aria-label={`Edit ${employee.name}`}
           >
             <Edit2 size={14} />
           </button>
           <button
+            type="button"
             onClick={() => onDelete(employee)}
-            className="btn-icon btn-danger"
+            className="btn btn-icon btn-ghost"
+            style={{ color: "var(--warning)" }}
             aria-label={`Delete ${employee.name}`}
           >
             <Trash2 size={14} />

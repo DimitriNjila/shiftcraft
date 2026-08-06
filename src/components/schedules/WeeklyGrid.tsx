@@ -1,4 +1,4 @@
-import { Fragment, memo, useMemo, useState, useCallback } from "react";
+import { memo, useMemo, useState, useCallback } from "react";
 import { Plus } from "lucide-react";
 import {
   DndContext,
@@ -12,63 +12,65 @@ import {
 } from "@dnd-kit/core";
 import { toDateStr, isToday } from "@/lib/utils/dates";
 import { ShiftCard, getRoleColors } from "./ShiftCard";
+import { Avatar } from "@/components/ui/Avatar";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { Schedule, Shift } from "@/lib/types/schedule";
 import type { Employee } from "@/lib/types/employee";
 
-// ── Avatar ────────────────────────────────────────────────────
-
-const AVATAR_PALETTE = [
-  { bg: "oklch(0.88 0.10 155)", color: "oklch(0.26 0.16 155)" },
-  { bg: "oklch(0.88 0.10 280)", color: "oklch(0.26 0.12 280)" },
-  { bg: "oklch(0.88 0.10 20)", color: "oklch(0.30 0.16 20)" },
-  { bg: "oklch(0.88 0.10 55)", color: "oklch(0.30 0.16 55)" },
-  { bg: "oklch(0.88 0.10 210)", color: "oklch(0.26 0.12 210)" },
-  { bg: "oklch(0.88 0.10 320)", color: "oklch(0.28 0.14 320)" },
-];
-
-function avatarColors(id: string) {
-  const hash = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
-}
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
-
 // ── Day header ────────────────────────────────────────────────
+
+const DAY_LABEL: Record<number, string> = {
+  0: "Sun",
+  1: "Mon",
+  2: "Tue",
+  3: "Wed",
+  4: "Thu",
+  5: "Fri",
+  6: "Sat",
+};
 
 function DayHeader({ day }: { day: Date }) {
   const today = isToday(day);
+  const shortDay = DAY_LABEL[day.getDay()];
+  const dateNum = day.getDate();
   return (
-    <div
-      className={`flex flex-col items-center justify-center py-3 border-b border-surface-highest ${
-        today ? "bg-primary-fixed/20" : ""
-      }`}
-    >
-      <span className="label-md text-on-surface-muted" style={{ fontSize: 11 }}>
-        {day.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}
-      </span>
-      <span
-        className={`mono text-[15px] font-semibold mt-0.5 ${today ? "text-primary" : "text-on-surface"}`}
+    <div style={{ padding: "0 6px" }}>
+      <div className="label-md" style={{ fontSize: 10 }}>
+        {shortDay}
+      </div>
+      <div
+        className="title-sm"
+        style={{
+          fontSize: 13,
+          marginTop: 2,
+          color: today ? "var(--accent)" : "var(--on-surface)",
+        }}
       >
-        {day.getDate()}
-      </span>
-      {today && (
-        <span className="label-md mt-0.5 text-primary" style={{ fontSize: 9 }}>
-          TODAY
-        </span>
-      )}
+        {shortDay} {dateNum}
+        {today && (
+          <span
+            style={{
+              marginLeft: 6,
+              fontSize: 9,
+              padding: "1px 6px",
+              background: "var(--accent-fixed)",
+              color: "var(--on-surface)",
+              borderRadius: 4,
+              fontFamily: "var(--font-label)",
+              fontWeight: 600,
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+            }}
+          >
+            Today
+          </span>
+        )}
+      </div>
     </div>
   );
 }
 
-// ── Employee info cell ────────────────────────────────────────
+// ── Employee row header ───────────────────────────────────────
 
 function EmployeeCell({
   employee,
@@ -77,56 +79,67 @@ function EmployeeCell({
   employee: Employee;
   weekShifts: Shift[];
 }) {
-  const colors = avatarColors(employee.id);
   const totalHours = weekShifts.reduce(
     (sum, s) => sum + (s.duration_hours ?? 0),
     0,
   );
-  const hoursLabel =
-    totalHours % 1 === 0 ? `${totalHours}h` : `${totalHours.toFixed(1)}h`;
-  const totalSalary = employee.salary * totalHours;
-  const salaryLabel = totalSalary;
-
+  const overtime = totalHours > 38;
+  const cost = totalHours * employee.salary;
   return (
-    <div className="flex items-center gap-2.5 px-3 py-3 border-b border-surface-highest bg-surface">
-      <div
-        className="w-11 h-11 rounded-full shrink-0 grid place-items-center text-[13px] font-bold font-display"
-        style={{ background: colors.bg, color: colors.color }}
-      >
-        {initials(employee.name)}
-      </div>
-      <div className="min-w-0">
-        <p className="body-sm font-bold truncate leading-tight">
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "8px 10px 8px 0",
+      }}
+    >
+      <Avatar name={employee.name} size={36} />
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div
+          className="title-sm"
+          style={{
+            fontSize: 13,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
           {employee.name}
-        </p>
-        <p
-          className="label-md text-on-surface-muted truncate"
-          style={{ fontSize: 10 }}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            marginTop: 1,
+          }}
         >
-          {employee.role.toUpperCase()}
-        </p>
+          <span className="label-sm" style={{ fontSize: 10 }}>
+            {employee.role}
+          </span>
+        </div>
       </div>
-      {totalHours > 0 && (
-        <span
-          className="ml-auto label-md text-on-surface-faint shrink-0 mono"
-          style={{ fontSize: 10 }}
+      <div style={{ textAlign: "right" }}>
+        <div
+          className="mono"
+          style={{
+            fontSize: 12,
+            color: overtime ? "var(--warning)" : "var(--on-surface)",
+            fontWeight: 600,
+          }}
         >
-          {hoursLabel}
-        </span>
-      )}
-      {totalSalary > 0 && (
-        <span
-          className="ml-auto label-md text-on-surface-faint shrink-0 mono"
-          style={{ fontSize: 10 }}
-        >
-          ${salaryLabel}
-        </span>
-      )}
+          {totalHours % 1 === 0 ? `${totalHours}h` : `${totalHours.toFixed(1)}h`}
+        </div>
+        <div className="label-sm" style={{ fontSize: 9 }}>
+          ${Math.round(cost)}
+        </div>
+      </div>
     </div>
   );
 }
 
-// ── Shift cell (droppable) ────────────────────────────────────
+// ── Droppable shift cell ──────────────────────────────────────
 
 interface ShiftCellProps {
   employee: Employee;
@@ -143,18 +156,15 @@ const ShiftCell = memo(function ShiftCell({
   employee,
   dateStr,
   shifts,
-  today,
   isDragging,
   onAddShift,
   onEdit,
   onDelete,
 }: ShiftCellProps) {
-  // Stable object reference — avoids DnD context re-registering on every render
   const droppableData = useMemo(
     () => ({ employeeId: employee.id, dateStr }),
     [employee.id, dateStr],
   );
-
   const { setNodeRef, isOver } = useDroppable({
     id: `${employee.id}:${dateStr}`,
     data: droppableData,
@@ -163,30 +173,60 @@ const ShiftCell = memo(function ShiftCell({
   return (
     <div
       ref={setNodeRef}
-      className={`group relative min-h-16 p-1.5 border-b border-l border-surface-highest flex flex-col gap-1 transition-colors ${
-        today ? "bg-primary-fixed/6" : ""
-      } ${isOver ? "ring-2 ring-inset ring-primary/40 bg-primary-fixed/10" : ""}`}
+      style={{
+        margin: "4px 3px",
+        padding: 3,
+        borderRadius: 10,
+        background: isOver
+          ? "color-mix(in oklab, var(--accent-fixed) 40%, var(--surface-lowest))"
+          : "var(--surface-lowest)",
+        boxShadow: "inset 0 0 0 1px var(--hairline)",
+        minHeight: 68,
+        display: "flex",
+        flexDirection: "column",
+        gap: 3,
+        transition: "background 0.12s, box-shadow 0.12s",
+        position: "relative",
+      }}
+      className="group"
     >
       {shifts.map((shift) => (
         <ShiftCard
           key={shift.id}
           shift={shift}
           role={employee.role}
+          employeeName={employee.name}
           onEdit={() => onEdit(shift)}
           onDelete={() => onDelete(shift.id)}
         />
       ))}
-
       {shifts.length === 0 && !isDragging && (
         <button
           type="button"
           onClick={() => onAddShift(employee.id, dateStr)}
-          className="absolute inset-0 w-full h-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
           aria-label={`Add shift for ${employee.name}`}
+          style={{
+            position: "absolute",
+            inset: 3,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            opacity: 0,
+            transition: "opacity 0.12s",
+            borderRadius: 8,
+          }}
+          className="group-hover:opacity-100"
         >
           <div
-            className="w-6 h-6 rounded-full grid place-items-center"
             style={{
+              width: 24,
+              height: 24,
+              borderRadius: "50%",
+              display: "grid",
+              placeItems: "center",
               background: getRoleColors(employee.role).bg,
               color: getRoleColors(employee.role).text,
             }}
@@ -225,7 +265,6 @@ export function WeeklyGrid({
 
   const [activeShift, setActiveShift] = useState<Shift | null>(null);
 
-  // Stable callbacks so memoized ShiftCell children don't re-render
   const stableOnAddShift = useCallback(onAddShift, [onAddShift]);
   const stableOnEditShift = useCallback(onEditShift, [onEditShift]);
   const stableOnDeleteShift = useCallback(onDeleteShift, [onDeleteShift]);
@@ -242,23 +281,20 @@ export function WeeklyGrid({
   function handleDragEnd({ active, over }: DragEndEvent) {
     setActiveShift(null);
     if (!over) return;
-
     const { employeeId, dateStr } = over.data.current as {
       employeeId: string;
       dateStr: string;
     };
     const drag = active.data.current as { employeeId: string; date: string };
-
     if (drag.employeeId === employeeId && drag.date === dateStr) return;
-
     onMoveShift(active.id as string, employeeId, dateStr);
   }
 
   if (employees.length === 0) {
     return (
       <EmptyState
-        title="No employees yet"
-        description="Add employees from the Team page before scheduling shifts."
+        title="No staff yet"
+        description="Add staff from the Staff page before scheduling shifts."
       />
     );
   }
@@ -267,6 +303,16 @@ export function WeeklyGrid({
     ? activeEmployees.find((e) => e.id === activeShift.employee_id)
     : null;
 
+  const dailyTotals = weekDays.map((day) => {
+    const dateStr = toDateStr(day);
+    const dayShifts = shifts.filter((s) => s.shift_date === dateStr);
+    const hours = dayShifts.reduce(
+      (sum, s) => sum + (s.duration_hours ?? 0),
+      0,
+    );
+    return { count: dayShifts.length, hours };
+  });
+
   return (
     <DndContext
       sensors={sensors}
@@ -274,50 +320,102 @@ export function WeeklyGrid({
       onDragEnd={handleDragEnd}
       onDragCancel={() => setActiveShift(null)}
     >
-      <div className="overflow-x-auto rounded-xl border border-surface-highest">
-        <div
-          className="grid"
-          style={{ gridTemplateColumns: "180px repeat(7, minmax(110px, 1fr))" }}
-        >
-          {/* Corner cell */}
-          <div className="border-b border-surface-highest bg-surface" />
-
-          {/* Day headers */}
-          {weekDays.map((day) => (
-            <DayHeader key={toDateStr(day)} day={day} />
-          ))}
+      <div
+        style={{
+          background: "var(--surface-container)",
+          borderRadius: "var(--r-2xl)",
+          boxShadow: "inset 0 0 0 1px var(--hairline)",
+          padding: 4,
+          overflow: "auto",
+          minHeight: 0,
+        }}
+      >
+        <div style={{ minWidth: 900 }}>
+          {/* Day header row */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "220px repeat(7, 1fr)",
+              position: "sticky",
+              top: 0,
+              zIndex: 2,
+              background: "var(--surface-container)",
+              padding: "12px 16px 10px 16px",
+            }}
+          >
+            <div />
+            {weekDays.map((day) => (
+              <DayHeader key={toDateStr(day)} day={day} />
+            ))}
+          </div>
 
           {/* Employee rows */}
-          {activeEmployees.map((emp) => {
-            const empShifts = shifts.filter((s) => s.employee_id === emp.id);
+          <div style={{ padding: "4px 16px 16px" }}>
+            {activeEmployees.map((emp) => {
+              const empShifts = shifts.filter(
+                (s) => s.employee_id === emp.id,
+              );
+              return (
+                <div
+                  key={emp.id}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "220px repeat(7, 1fr)",
+                    alignItems: "stretch",
+                    minHeight: 76,
+                    marginBottom: 4,
+                  }}
+                >
+                  <EmployeeCell employee={emp} weekShifts={empShifts} />
+                  {weekDays.map((day) => {
+                    const dateStr = toDateStr(day);
+                    const dayShifts = empShifts.filter(
+                      (s) => s.shift_date === dateStr,
+                    );
+                    return (
+                      <ShiftCell
+                        key={dateStr}
+                        employee={emp}
+                        dateStr={dateStr}
+                        shifts={dayShifts}
+                        today={isToday(day)}
+                        isDragging={!!activeShift}
+                        onAddShift={stableOnAddShift}
+                        onEdit={stableOnEditShift}
+                        onDelete={stableOnDeleteShift}
+                      />
+                    );
+                  })}
+                </div>
+              );
+            })}
 
-            return (
-              <Fragment key={emp.id}>
-                <EmployeeCell employee={emp} weekShifts={empShifts} />
-
-                {weekDays.map((day) => {
-                  const dateStr = toDateStr(day);
-                  const dayShifts = empShifts.filter(
-                    (s) => s.shift_date === dateStr,
-                  );
-
-                  return (
-                    <ShiftCell
-                      key={dateStr}
-                      employee={emp}
-                      dateStr={dateStr}
-                      shifts={dayShifts}
-                      today={isToday(day)}
-                      isDragging={!!activeShift}
-                      onAddShift={stableOnAddShift}
-                      onEdit={stableOnEditShift}
-                      onDelete={stableOnDeleteShift}
-                    />
-                  );
-                })}
-              </Fragment>
-            );
-          })}
+            {/* Daily totals */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "220px repeat(7, 1fr)",
+                marginTop: 12,
+                padding: "12px 0",
+              }}
+            >
+              <div style={{ padding: "0 10px" }}>
+                <div className="label-md">Daily totals</div>
+              </div>
+              {dailyTotals.map((t, i) => (
+                <div key={i} style={{ padding: "0 9px" }}>
+                  <div className="title-md mono" style={{ fontSize: 14 }}>
+                    {t.hours % 1 === 0
+                      ? `${t.hours}h`
+                      : `${t.hours.toFixed(1)}h`}
+                  </div>
+                  <div className="label-sm" style={{ fontSize: 10 }}>
+                    {t.count} shift{t.count !== 1 ? "s" : ""}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -326,6 +424,7 @@ export function WeeklyGrid({
           <ShiftCard
             shift={activeShift}
             role={overlayEmployee?.role ?? "Server"}
+            employeeName={overlayEmployee?.name}
             onEdit={() => {}}
             onDelete={() => {}}
             dragOverlay

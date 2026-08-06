@@ -172,7 +172,7 @@ export default function SetupPage() {
         <div className="flex items-center gap-2.5 mb-8">
           <div className="brand-logo-mark">S</div>
           <span className="font-display font-bold text-base tracking-[-0.01em]">
-            Shiftcraft
+            Mise en Place
           </span>
         </div>
 
@@ -235,9 +235,12 @@ export default function SetupPage() {
                 {templates.map((t, i) => (
                   <TemplateRowEditor
                     key={i}
-                    entry={t}
-                    onRemove={() => removeTemplate(i)}
-                    onChange={(updated) => updateTemplate(i, updated)}
+                    row={{ ...t, _key: String(i) }}
+                    onDelete={() => removeTemplate(i)}
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    onChange={({ _key: _, ...entry }) =>
+                      updateTemplate(i, entry)
+                    }
                   />
                 ))}
               </div>

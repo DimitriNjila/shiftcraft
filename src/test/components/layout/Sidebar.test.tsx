@@ -17,8 +17,7 @@ vi.mock('@/contexts/AuthContext', () => ({
 
 // ── Helpers ───────────────────────────────────────────────────
 const defaultProps: SidebarProps = {
-  collapsed: false,
-  onToggleCollapse: vi.fn(),
+  rail: false,
   mobileOpen: false,
   onMobileClose: vi.fn(),
 };
@@ -36,16 +35,16 @@ describe('Sidebar', () => {
   beforeEach(() => vi.clearAllMocks());
 
   describe('rendering', () => {
-    it('renders the brand name and logo', () => {
+    it('renders the brand wordmark', () => {
       setup();
-      expect(screen.getByText('Shiftcraft')).toBeInTheDocument();
+      expect(screen.getByText('Mise en place')).toBeInTheDocument();
     });
 
     it('renders all five nav items', () => {
       setup();
       expect(screen.getByRole('link', { name: /dashboard/i })).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: /employees/i })).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: /schedules/i })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /staff/i })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /schedule/i })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: /templates/i })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: /settings/i })).toBeInTheDocument();
     });
@@ -53,8 +52,8 @@ describe('Sidebar', () => {
     it('nav links point to the correct routes', () => {
       setup();
       expect(screen.getByRole('link', { name: /dashboard/i })).toHaveAttribute('href', '/dashboard');
-      expect(screen.getByRole('link', { name: /employees/i })).toHaveAttribute('href', '/employees');
-      expect(screen.getByRole('link', { name: /schedules/i })).toHaveAttribute('href', '/schedules');
+      expect(screen.getByRole('link', { name: /staff/i })).toHaveAttribute('href', '/employees');
+      expect(screen.getByRole('link', { name: /schedule/i })).toHaveAttribute('href', '/schedules');
       expect(screen.getByRole('link', { name: /templates/i })).toHaveAttribute('href', '/templates');
       expect(screen.getByRole('link', { name: /settings/i })).toHaveAttribute('href', '/settings');
     });
@@ -75,42 +74,27 @@ describe('Sidebar', () => {
       expect(screen.getByText('EK')).toBeInTheDocument();
     });
 
-    it('shows the first letter of email when full_name is absent', () => {
+    it('falls back to the email local-part when full_name is absent', () => {
       mockUseAuth.mockReturnValue({
         ...mockAuthValue,
         user: { email: 'alice@test.com', user_metadata: {} },
       });
       renderWithRouter(<Sidebar {...defaultProps} />);
+      // "alice" → "A"
       expect(screen.getByText('A')).toBeInTheDocument();
-    });
-
-    it('renders the user email', () => {
-      mockUseAuth.mockReturnValue({
-        ...mockAuthValue,
-        user: { email: 'elena@meridian.co', user_metadata: { full_name: 'Elena' } },
-      });
-      renderWithRouter(<Sidebar {...defaultProps} />);
-      expect(screen.getByText('elena@meridian.co')).toBeInTheDocument();
     });
   });
 
-  describe('collapse behaviour', () => {
+  describe('rail mode', () => {
     it('hides nav labels in rail mode', () => {
-      setup({ collapsed: true });
+      setup({ rail: true });
       expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
-      expect(screen.queryByText('Employees')).not.toBeInTheDocument();
+      expect(screen.queryByText('Staff')).not.toBeInTheDocument();
     });
 
-    it('calls onToggleCollapse when the collapse button is clicked', async () => {
-      const onToggleCollapse = vi.fn();
-      const { user } = setup({ collapsed: false, onToggleCollapse });
-      await user.click(screen.getByRole('button', { name: /collapse sidebar/i }));
-      expect(onToggleCollapse).toHaveBeenCalledOnce();
-    });
-
-    it('shows the expand button in rail mode', () => {
-      setup({ collapsed: true });
-      expect(screen.getByRole('button', { name: /expand sidebar/i })).toBeInTheDocument();
+    it('hides the wordmark in rail mode', () => {
+      setup({ rail: true });
+      expect(screen.queryByText('Mise en place')).not.toBeInTheDocument();
     });
   });
 
@@ -125,7 +109,7 @@ describe('Sidebar', () => {
     it('calls onMobileClose when a nav link is clicked', async () => {
       const onMobileClose = vi.fn();
       const { user } = setup({ mobileOpen: true, onMobileClose });
-      await user.click(screen.getByRole('link', { name: /employees/i }));
+      await user.click(screen.getByRole('link', { name: /staff/i }));
       expect(onMobileClose).toHaveBeenCalled();
     });
   });
