@@ -78,3 +78,25 @@ export interface UpdateShiftRequest {
   end_time?: string;
   notes?: string;
 }
+
+// ── Share links ──────────────────────────────────────────────
+
+export interface ShareLinkResponse {
+  share_token: string;
+  share_enabled: boolean;
+  share_expires_at: string; // ISO 8601
+}
+
+export interface PublicShift {
+  employee_name: string;
+  role: string;
+  shift_date: string; // YYYY-MM-DD
+  start_time: string; // HH:MM:SS
+  end_time: string;   // HH:MM:SS
+}
+
+export interface PublicScheduleResponse {
+  restaurant_name: string;
+  week_start: string; // YYYY-MM-DD
+  shifts: PublicShift[];
+}

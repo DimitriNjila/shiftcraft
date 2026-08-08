@@ -1,13 +1,15 @@
-import { ChevronRight, CalendarDays, Edit2, Trash2 } from "lucide-react";
+import { ChevronRight, CalendarDays, Edit2, EyeOff } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import type { Employee } from "@/lib/types/employee";
 import { Avatar } from "@/components/ui/Avatar";
 import { roleHue } from "@/lib/utils/roles";
 
 export interface StaffTableProps {
   employees: Employee[];
+  /** Row background hover-target. Kept as-is for edit-on-row-click. */
   onSelect: (e: Employee) => void;
   onEdit: (e: Employee) => void;
-  onDelete: (e: Employee) => void;
+  onRemove: (e: Employee) => void;
   onAvailability: (e: Employee) => void;
 }
 
@@ -17,9 +19,10 @@ export function StaffTable({
   employees,
   onSelect,
   onEdit,
-  onDelete,
+  onRemove,
   onAvailability,
 }: StaffTableProps) {
+  const navigate = useNavigate();
   return (
     <div
       style={{
@@ -176,18 +179,20 @@ export function StaffTable({
                 </button>
                 <button
                   type="button"
-                  onClick={() => onDelete(s)}
+                  onClick={() => onRemove(s)}
                   className="btn btn-icon btn-ghost"
                   style={{ color: "var(--warning)" }}
-                  aria-label={`Delete ${s.name}`}
+                  aria-label={`Disable ${s.name}`}
+                  title="Disable"
                 >
-                  <Trash2 size={14} />
+                  <EyeOff size={14} />
                 </button>
                 <button
                   type="button"
-                  onClick={() => onSelect(s)}
+                  onClick={() => navigate(`/employees/${s.id}`)}
                   className="btn btn-icon btn-ghost"
-                  aria-label={`Open ${s.name}`}
+                  aria-label={`Open ${s.name}'s profile`}
+                  title="Open profile"
                 >
                   <ChevronRight size={14} />
                 </button>

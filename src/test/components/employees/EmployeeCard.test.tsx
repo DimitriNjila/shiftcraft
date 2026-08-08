@@ -20,17 +20,17 @@ const BASE: Employee = {
 
 function setup(overrides: Partial<Employee> = {}) {
   const onEdit = vi.fn();
-  const onDelete = vi.fn();
+  const onRemove = vi.fn();
   const onAvailability = vi.fn();
   render(
     <EmployeeCard
       employee={{ ...BASE, ...overrides }}
       onEdit={onEdit}
-      onDelete={onDelete}
+      onRemove={onRemove}
       onAvailability={onAvailability}
     />,
   );
-  return { onEdit, onDelete, onAvailability };
+  return { onEdit, onRemove, onAvailability };
 }
 
 describe("EmployeeCard", () => {
@@ -75,12 +75,12 @@ describe("EmployeeCard", () => {
     expect(onEdit).toHaveBeenCalledWith({ ...BASE });
   });
 
-  it("calls onDelete with the employee when the delete button is clicked", async () => {
-    const { onDelete } = setup();
+  it("calls onRemove with the employee when the disable button is clicked", async () => {
+    const { onRemove } = setup();
     await userEvent.click(
-      screen.getByRole("button", { name: /delete elena kovač/i }),
+      screen.getByRole("button", { name: /disable elena kovač/i }),
     );
-    expect(onDelete).toHaveBeenCalledWith({ ...BASE });
+    expect(onRemove).toHaveBeenCalledWith({ ...BASE });
   });
 });
 

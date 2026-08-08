@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Upload } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useRestaurant } from "@/lib/hooks/use-restaurant";
 import {
   useShiftTemplates,
@@ -18,6 +19,7 @@ import {
 } from "@/lib/utils/templates";
 
 export default function TemplatesPage() {
+  const navigate = useNavigate();
   const { data: restaurant } = useRestaurant();
   const { data: record, status, refetch } = useShiftTemplates(restaurant?.id);
   const saveTemplates = useSaveShiftTemplates();
@@ -126,7 +128,11 @@ export default function TemplatesPage() {
             Saving…
           </span>
         )}
-        <button type="button" className="btn btn-secondary" disabled>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => navigate("/templates/import")}
+        >
           <Upload size={14} /> Import
         </button>
         <button
@@ -155,9 +161,7 @@ export default function TemplatesPage() {
       {status === "success" && groups.length === 0 && (
         <TemplatesEmpty
           onNew={() => setModal("new")}
-          onImport={() => {
-            /* Stage 5 will wire /import route */
-          }}
+          onImport={() => navigate("/templates/import")}
         />
       )}
 
@@ -340,9 +344,8 @@ function TemplatesEmpty({
           type="button"
           className="btn btn-secondary"
           onClick={onImport}
-          disabled
         >
-          <Upload size={14} /> Import (coming soon)
+          <Upload size={14} /> Import from a spreadsheet
         </button>
       </div>
       <div className="label-sm" style={{ marginTop: 18, fontSize: 10 }}>

@@ -1,5 +1,10 @@
-import { ChevronLeft, ChevronRight, Sparkles, Send, Zap } from "lucide-react";
-import { getWeekRangeLabel, getWeekNumber } from "@/lib/utils/dates";
+import { ChevronLeft, ChevronRight, Sparkles, Trash2, Zap } from "lucide-react";
+import {
+  getWeekRangeLabel,
+  getWeekNumber,
+  toDateStr,
+} from "@/lib/utils/dates";
+import { ShareMenu } from "./ShareMenu";
 import type { Schedule } from "@/lib/types/schedule";
 
 const ROLES: Array<{ id: string; label: string }> = [
@@ -22,12 +27,15 @@ export interface ScheduleToolbarProps {
   isCurrentWeek: boolean;
   isGenerating: boolean;
   isAnalyzing: boolean;
+  isClearing?: boolean;
+  hasShifts?: boolean;
   onPrev: () => void;
   onNext: () => void;
   onToday: () => void;
   onShare: () => void;
   onAnalyze: () => void;
   onGenerate: () => void;
+  onClear: () => void;
 }
 
 export function ScheduleToolbar({
@@ -42,21 +50,26 @@ export function ScheduleToolbar({
   isCurrentWeek,
   isGenerating,
   isAnalyzing,
+  isClearing = false,
+  hasShifts = false,
   onPrev,
   onNext,
   onToday,
   onShare,
   onAnalyze,
   onGenerate,
+  onClear,
 }: ScheduleToolbarProps) {
   const label = getWeekRangeLabel(monday);
   const weekNum = getWeekNumber(monday);
   const year = monday.getFullYear();
   const totalHours = schedule?.total_hours ?? 0;
   const hasSchedule = !!schedule;
+  const weekStart = toDateStr(monday);
 
   return (
     <div
+      className="no-print"
       style={{
         display: "flex",
         alignItems: "center",
@@ -115,13 +128,7 @@ export function ScheduleToolbar({
         )}
       </div>
 
-      <div
-        style={{
-          width: 1,
-          height: 28,
-          background: "var(--surface-high)",
-        }}
-      />
+      <div style={{ width: 1, height: 28, background: "var(--surface-high)" }} />
 
       {/* View toggle */}
       <div
@@ -218,23 +225,16 @@ export function ScheduleToolbar({
         </div>
       )}
 
-      <div
-        style={{
-          width: 1,
-          height: 28,
-          background: "var(--surface-high)",
-        }}
-      />
+      <div style={{ width: 1, height: 28, background: "var(--surface-high)" }} />
 
-      {/* Actions */}
-      <button
-        type="button"
-        onClick={onShare}
-        className="btn btn-secondary"
+      {/* Actions — single Share dropdown, then AI analysis, then Generate */}
+      <ShareMenu
+        scheduleId={schedule?.id}
+        weekStart={weekStart}
+        weekLabel={label}
         disabled={!hasSchedule}
-      >
-        <Send size={14} /> Share
-      </button>
+        onOpenShare={onShare}
+      />
       <button
         type="button"
         onClick={onAnalyze}
@@ -242,6 +242,20 @@ export function ScheduleToolbar({
         disabled={!hasSchedule || isAnalyzing}
       >
         <Sparkles size={14} /> {isAnalyzing ? "Analysing…" : "AI analysis"}
+      </button>
+      <button
+        type="button"
+        onClick={onClear}
+        className="btn btn-ghost"
+        style={{ color: "var(--warning)" }}
+        disabled={!hasSchedule || !hasShifts || isClearing}
+        title={
+          !hasShifts
+            ? "Nothing to clear"
+            : "Remove every shift from this week"
+        }
+      >
+        <Trash2 size={14} /> {isClearing ? "Clearing…" : "Clear"}
       </button>
       <button
         type="button"

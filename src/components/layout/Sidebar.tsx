@@ -116,7 +116,7 @@ export function Sidebar({ rail, mobileOpen, onMobileClose }: SidebarProps) {
                   style={{
                     flexShrink: 0,
                     color: isActive
-                      ? "var(--on-surface)"
+                      ? "var(--accent)"
                       : "var(--on-surface-muted)",
                   }}
                 />

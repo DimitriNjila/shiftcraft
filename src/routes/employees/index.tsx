@@ -6,6 +6,7 @@ import {
   useCreateEmployee,
   useUpdateEmployee,
   useDeleteEmployee,
+  useDeactivateEmployee,
 } from "@/lib/hooks/use-employees";
 import {
   EmployeeCard,
@@ -14,7 +15,10 @@ import {
 import { StaffTable } from "@/components/employees/StaffTable";
 import { EmployeeModal } from "@/components/employees/EmployeeModal";
 import { AvailabilityModal } from "@/components/employees/AvailabilityModal";
-import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import {
+  DisableEmployeeModal,
+  type DisableModalMode,
+} from "@/components/employees/DisableEmployeeModal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { usePageMeta } from "@/components/layout/page-meta";
@@ -36,6 +40,7 @@ export default function EmployeesPage() {
   const createEmployee = useCreateEmployee();
   const updateEmployee = useUpdateEmployee();
   const deleteEmployee = useDeleteEmployee();
+  const deactivateEmployee = useDeactivateEmployee();
 
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -43,7 +48,8 @@ export default function EmployeesPage() {
   const [view, setView] = useState<"table" | "grid">("table");
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Employee | undefined>();
-  const [deleteTarget, setDeleteTarget] = useState<Employee | undefined>();
+  const [removeTarget, setRemoveTarget] = useState<Employee | undefined>();
+  const [removeMode, setRemoveMode] = useState<DisableModalMode>("disable");
   const [availabilityTarget, setAvailabilityTarget] = useState<
     Employee | undefined
   >();
@@ -156,11 +162,38 @@ export default function EmployeesPage() {
     }
   };
 
+  const openRemove = (employee: Employee) => {
+    setRemoveTarget(employee);
+    setRemoveMode("disable");
+  };
+  const closeRemove = () => {
+    setRemoveTarget(undefined);
+    setRemoveMode("disable");
+  };
+
+  const handleDisable = () => {
+    if (!removeTarget) return;
+    deactivateEmployee.mutate(removeTarget.id, {
+      onSuccess: closeRemove,
+    });
+  };
+
   const handleDelete = () => {
-    if (!deleteTarget) return;
-    deleteEmployee.mutate(deleteTarget.id, {
-      onSuccess: () => setDeleteTarget(undefined),
-      onError: () => setDeleteTarget(undefined),
+    if (!removeTarget) return;
+    deleteEmployee.mutate(removeTarget.id, {
+      onSuccess: closeRemove,
+      onError: (error) => {
+        // 409 → pivot the modal to the "has shift history" state so the
+        // manager can bail into disable in one click. Any other error is
+        // already toasted by the mutation.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const status = (error as any)?.response?.status;
+        if (status === 409) {
+          setRemoveMode("delete-blocked");
+        } else {
+          closeRemove();
+        }
+      },
     });
   };
 
@@ -378,7 +411,7 @@ export default function EmployeesPage() {
           employees={filtered}
           onSelect={openEdit}
           onEdit={openEdit}
-          onDelete={setDeleteTarget}
+          onRemove={openRemove}
           onAvailability={setAvailabilityTarget}
         />
       ) : (
@@ -394,7 +427,7 @@ export default function EmployeesPage() {
               key={employee.id}
               employee={employee}
               onEdit={openEdit}
-              onDelete={setDeleteTarget}
+              onRemove={openRemove}
               onAvailability={setAvailabilityTarget}
             />
           ))}
@@ -417,14 +450,17 @@ export default function EmployeesPage() {
           onClose={() => setAvailabilityTarget(undefined)}
         />
       )}
-      {deleteTarget && (
-        <ConfirmModal
-          title="Remove staff member"
-          description={`Remove ${deleteTarget.name} from your team? This cannot be undone.`}
-          confirmLabel="Remove"
-          isPending={deleteEmployee.isPending}
-          onConfirm={handleDelete}
-          onCancel={() => setDeleteTarget(undefined)}
+      {removeTarget && (
+        <DisableEmployeeModal
+          employee={removeTarget}
+          mode={removeMode}
+          isPending={
+            deactivateEmployee.isPending || deleteEmployee.isPending
+          }
+          onDisable={handleDisable}
+          onDelete={handleDelete}
+          onSwitchToDelete={() => setRemoveMode("delete")}
+          onCancel={closeRemove}
         />
       )}
     </div>

@@ -149,21 +149,25 @@ export function ShiftCard({
           onDelete();
         }}
         aria-label="Delete shift"
+        title="Delete shift"
+        className="shift-delete-btn"
         style={{
           position: "absolute",
           top: 4,
           right: 4,
-          background: "none",
+          padding: 3,
+          borderRadius: 5,
+          background: "color-mix(in oklab, currentColor 12%, transparent)",
           border: "none",
-          padding: 2,
           color: text,
           cursor: "pointer",
-          opacity: 0,
-          transition: "opacity 0.12s",
+          transition: "background 0.12s, opacity 0.12s",
+          opacity: 0.7,
+          display: "grid",
+          placeItems: "center",
         }}
-        className="group-hover:opacity-100 lg:opacity-0"
       >
-        <Trash2 size={13} />
+        <Trash2 size={12} />
       </button>
     </div>
   );

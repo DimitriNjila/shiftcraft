@@ -50,16 +50,18 @@ export default function AppLayout() {
           }
         }}
       >
-        <Sidebar
-          rail={rail}
-          mobileOpen={mobileOpen}
-          onMobileClose={() => setMobileOpen(false)}
-        />
+        <div className="no-print" style={{ display: "contents" }}>
+          <Sidebar
+            rail={rail}
+            mobileOpen={mobileOpen}
+            onMobileClose={() => setMobileOpen(false)}
+          />
+        </div>
 
         <div className="main-area">
           {/* Mobile header bar */}
           <div
-            className="flex items-center gap-3 px-4 h-14 shrink-0 md:hidden"
+            className="flex items-center gap-3 px-4 h-14 shrink-0 md:hidden no-print"
             style={{ boxShadow: "inset 0 -1px var(--hairline)" }}
           >
             <button
@@ -74,7 +76,7 @@ export default function AppLayout() {
           </div>
 
           {/* Desktop topbar */}
-          <div className="hidden md:block">
+          <div className="hidden md:block no-print">
             <Topbar />
           </div>
 

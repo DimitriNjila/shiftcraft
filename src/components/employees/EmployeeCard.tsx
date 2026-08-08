@@ -1,4 +1,4 @@
-import { CalendarDays, Edit2, Trash2 } from "lucide-react";
+import { CalendarDays, Edit2, EyeOff } from "lucide-react";
 import type { Employee } from "@/lib/types/employee";
 import { Avatar } from "@/components/ui/Avatar";
 import { roleHue } from "@/lib/utils/roles";
@@ -36,14 +36,16 @@ export function EmployeeCardSkeleton() {
 export interface EmployeeCardProps {
   employee: Employee;
   onEdit: (employee: Employee) => void;
-  onDelete: (employee: Employee) => void;
+  /** Opens the disable/delete flow — primary action is disable (reversible),
+   *  delete is a secondary link inside the modal. */
+  onRemove: (employee: Employee) => void;
   onAvailability: (employee: Employee) => void;
 }
 
 export function EmployeeCard({
   employee,
   onEdit,
-  onDelete,
+  onRemove,
   onAvailability,
 }: EmployeeCardProps) {
   const hue = roleHue(employee.role);
@@ -156,12 +158,13 @@ export function EmployeeCard({
           </button>
           <button
             type="button"
-            onClick={() => onDelete(employee)}
+            onClick={() => onRemove(employee)}
             className="btn btn-icon btn-ghost"
             style={{ color: "var(--warning)" }}
-            aria-label={`Delete ${employee.name}`}
+            aria-label={`Disable ${employee.name}`}
+            title="Disable"
           >
-            <Trash2 size={14} />
+            <EyeOff size={14} />
           </button>
         </div>
       </div>

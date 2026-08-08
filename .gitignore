@@ -27,6 +27,9 @@ dist-ssr
 DESIGN_SYSTEM.md
 CLAUDE.md
 
+# Local workspace — dummy test files, downloaded images, etc.
+scratchpad/
+
 .env
 
 

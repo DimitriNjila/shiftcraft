@@ -347,29 +347,26 @@ a:hover { color: var(--accent-container); }
   }
   .btn:active { transform: scale(0.985); }
 
-  /* Primary CTA — brand emerald gradient (matches the ✳ mark and the
-     auth-page CTAs). Applies to Generate schedule, Save, Add staff, etc. */
+  /* Primary CTA — ink dark on cream, matching the design's tokens.css.
+     The ✳ mark and the auth-page CTA are the only spots that use the
+     brand emerald; everywhere else in the product the primary stays ink. */
   .btn-primary {
-    background: linear-gradient(180deg, #00875a 0%, #006b47 55%, #004a2f 100%);
-    color: #ffffff;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.12),
-      0 2px 12px rgba(0, 74, 47, 0.28);
+    background: var(--ink);
+    color: #f5f2ea;
+    box-shadow: 0 2px 12px rgba(18, 41, 28, 0.22);
   }
   .btn-primary:hover {
-    filter: brightness(1.08);
+    filter: brightness(1.22);
     transform: translateY(-1px);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.12),
-      0 8px 20px rgba(0, 74, 47, 0.36);
+    box-shadow: 0 8px 20px rgba(18, 41, 28, 0.3);
   }
   .btn-primary:active { transform: scale(0.985); }
   .btn-primary:disabled {
     filter: none;
-    opacity: 0.55;
+    opacity: 0.5;
     cursor: default;
     transform: none;
-    box-shadow: 0 2px 12px rgba(0, 74, 47, 0.22);
+    box-shadow: 0 2px 12px rgba(18, 41, 28, 0.22);
   }
   /* Inside an ink editorial panel, flip the primary so it reads against the
      dark bg. Do NOT apply this globally to dark mode — that made every
@@ -780,10 +777,233 @@ a:hover { color: var(--accent-container); }
     50%      { opacity: 1;    transform: scale(1); }
   }
 
+  /* Shift-card delete button. Always visible (0.7) so managers can find it,
+     pops to full opacity on shift-card or button hover. */
+  .shift-delete-btn:hover {
+    opacity: 1;
+    background: color-mix(in oklab, currentColor 20%, transparent) !important;
+  }
+
   /* --- Print --- */
+  @page {
+    size: letter landscape;
+    margin: 0.4in;
+  }
   @media print {
-    .no-print { display: none !important; }
-    .app-shell { grid-template-columns: 1fr !important; }
-    body { background: #fff !important; color: #1c1b1b !important; }
+    .no-print,
+    .no-print * { display: none !important; }
+    /* Collapse the sidebar column so the sheet gets the full page. */
+    .app-shell { grid-template-columns: 0 1fr !important; }
+    .sidebar { display: none !important; }
+    .main-area,
+    .page-content {
+      overflow: visible !important;
+      height: auto !important;
+      padding: 0 !important;
+    }
+    html, body {
+      background: #ffffff !important;
+      color: #1c1b1b !important;
+      overflow: visible !important;
+      height: auto !important;
+    }
+    .print-avoid-break { break-inside: avoid; page-break-inside: avoid; }
+    .print-only { display: block !important; }
+  }
+  .print-only { display: none; }
+
+  /* ============================================================
+     PrintableSchedule — calendar sheet
+     Used by both /schedules/:id/print preview and window.print().
+     Fixed light palette; never inherits [data-theme="dark"].
+     ============================================================ */
+  .printable-schedule {
+    color: #1c1b1b;
+    background: #ffffff;
+    font-family: var(--font-body);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+  }
+  .ps-head {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #006b47;
+  }
+  .ps-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #12291c;
+    color: #f2efe9;
+    display: grid;
+    place-items: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .ps-title-block { flex: 1; min-width: 0; }
+  .ps-eyebrow {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #006b47;
+  }
+  .ps-title {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 26px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: #1c1b1b;
+    margin-top: 2px;
+  }
+  .ps-meta { text-align: right; flex-shrink: 0; }
+  .ps-week {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 600;
+    color: #1c1b1b;
+  }
+  .ps-sub {
+    font-family: var(--font-label);
+    font-size: 10px;
+    color: #8a8583;
+    margin-top: 2px;
+  }
+  .ps-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0;
+    flex: 1;
+    min-height: 0;
+    margin-top: 14px;
+  }
+  .ps-col {
+    padding: 0 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .ps-col-bordered { border-left: 1px solid #eceae9; }
+  .ps-col-head {
+    padding-bottom: 8px;
+  }
+  .ps-dow {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .ps-day {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: #8a8583;
+    margin-left: 6px;
+  }
+  .ps-shifts { display: flex; flex-direction: column; gap: 5px; }
+  .ps-shift {
+    background: #faf8f7;
+    border-radius: 6px;
+    padding: 5px 7px 5px 9px;
+    position: relative;
+    overflow: hidden;
+  }
+  .ps-stripe {
+    position: absolute;
+    left: 0;
+    top: 3px;
+    bottom: 3px;
+    width: 3px;
+    border-radius: 2px;
+  }
+  .ps-time {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 600;
+    color: #1c1b1b;
+  }
+  .ps-name {
+    font-size: 10.5px;
+    font-weight: 600;
+    margin-top: 1px;
+    color: #1c1b1b;
+  }
+  .ps-role {
+    font-family: var(--font-label);
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #8a8583;
+    margin-top: 1px;
+  }
+  .ps-foot {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #eceae9;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .ps-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-label);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #5d5958;
+  }
+  .ps-legend-swatch { width: 8px; height: 8px; border-radius: 2px; }
+  .ps-signoff {
+    font-family: var(--font-label);
+    font-size: 9px;
+    color: #8a8583;
+    letter-spacing: 0.02em;
+  }
+  .ps-brand {
+    color: #006b47;
+    font-family: 'Newsreader', Georgia, serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 11px;
+  }
+
+  /* --- Print preview page (on-screen "paper" framing) --- */
+  .print-sheet-wrap {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  .print-sheet {
+    background: #ffffff;
+    color: #1c1b1b;
+    border-radius: 6px;
+    box-shadow:
+      0 24px 64px rgba(0, 0, 0, 0.18),
+      0 4px 12px rgba(0, 0, 0, 0.08);
+    padding: 36px 40px;
+    aspect-ratio: 11 / 8.5;
+    display: flex;
+    flex-direction: column;
+  }
+  /* When printing, strip the paper-frame chrome so only the sheet content
+     lives on the page (@page margins already provide the border). */
+  @media print {
+    .print-sheet-wrap { max-width: none !important; margin: 0 !important; }
+    .print-sheet {
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      padding: 0 !important;
+      aspect-ratio: auto !important;
+      min-height: 100vh;
+    }
   }
 }

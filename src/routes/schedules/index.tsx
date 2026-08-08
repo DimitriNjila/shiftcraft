@@ -6,9 +6,15 @@ import {
   useGenerateSchedule,
 } from "@/lib/hooks/use-schedules";
 import { useEmployees } from "@/lib/hooks/use-employees";
-import { useUpdateShift, useDeleteShift } from "@/lib/hooks/use-shifts";
+import {
+  useUpdateShift,
+  useDeleteShift,
+  useClearScheduleShifts,
+} from "@/lib/hooks/use-shifts";
 import { useAnalyzeSchedule } from "@/lib/hooks/use-analysis";
 import { useShiftTemplates } from "@/lib/hooks/use-templates";
+import { Send } from "lucide-react";
+import { toast } from "sonner";
 import { ScheduleToolbar } from "@/components/schedules/ScheduleToolbar";
 import { WeeklyGrid } from "@/components/schedules/WeeklyGrid";
 import { ShiftModal } from "@/components/schedules/ShiftModal";
@@ -61,6 +67,7 @@ export default function SchedulesPage() {
   const { data: templateRecord } = useShiftTemplates(restaurant?.id);
   const updateShift = useUpdateShift(schedule?.id ?? "");
   const deleteShift = useDeleteShift(schedule?.id ?? "");
+  const clearShifts = useClearScheduleShifts(schedule?.id ?? "");
   const generateSchedule = useGenerateSchedule();
   const analyzeSchedule = useAnalyzeSchedule();
 
@@ -85,6 +92,7 @@ export default function SchedulesPage() {
   const [analysisOpen, setAnalysisOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [generateConfirmOpen, setGenerateConfirmOpen] = useState(false);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [roleFilter, setRoleFilter] = useState("all");
   const [view, setView] = useState<"week" | "day">("week");
 
@@ -94,6 +102,18 @@ export default function SchedulesPage() {
   usePageMeta({
     title: "Weekly schedule",
     breadcrumbs: ["Schedule", weekLabel],
+    actions: (
+      <button
+        type="button"
+        className="btn btn-primary"
+        disabled={!schedule}
+        onClick={() =>
+          toast.success("Schedule published — team notified")
+        }
+      >
+        <Send size={14} /> Publish
+      </button>
+    ),
   });
 
   function goToWeek(date: Date) {
@@ -161,12 +181,15 @@ export default function SchedulesPage() {
         isCurrentWeek={isCurrentWeek}
         isGenerating={generateSchedule.isPending}
         isAnalyzing={analyzeSchedule.isPending}
+        isClearing={clearShifts.isPending}
+        hasShifts={(schedule?.shifts?.length ?? 0) > 0}
         onPrev={prevWeek}
         onNext={nextWeek}
         onToday={goToday}
         onShare={() => setShareOpen(true)}
         onAnalyze={handleAnalyze}
         onGenerate={handleGenerate}
+        onClear={() => setClearConfirmOpen(true)}
       />
 
       {!isLoading &&
@@ -174,11 +197,13 @@ export default function SchedulesPage() {
         !error &&
         schedule &&
         templates.length > 0 && (
-          <CoverageGaps
-            gaps={coverageGaps}
-            requiredHours={requiredHours}
-            scheduledHours={scheduledHours}
-          />
+          <div className="no-print">
+            <CoverageGaps
+              gaps={coverageGaps}
+              requiredHours={requiredHours}
+              scheduledHours={scheduledHours}
+            />
+          </div>
         )}
 
       {isLoading && (
@@ -195,25 +220,27 @@ export default function SchedulesPage() {
       )}
 
       {!isLoading && !error && schedule && (
-        <WeeklyGrid
-          schedule={schedule}
-          employees={filteredEmployees}
-          weekDays={weekDays}
-          onAddShift={(employeeId, dateStr) =>
-            setShiftModal({
-              defaultEmployeeId: employeeId,
-              defaultDate: dateStr,
-            })
-          }
-          onEditShift={(shift) => setShiftModal({ shift })}
-          onDeleteShift={(id) => setDeleteShiftId(id)}
-          onMoveShift={(shiftId, employeeId, date) =>
-            updateShift.mutate({
-              id: shiftId,
-              updates: { employee_id: employeeId, shift_date: date },
-            })
-          }
-        />
+        <div className="no-print">
+          <WeeklyGrid
+            schedule={schedule}
+            employees={filteredEmployees}
+            weekDays={weekDays}
+            onAddShift={(employeeId, dateStr) =>
+              setShiftModal({
+                defaultEmployeeId: employeeId,
+                defaultDate: dateStr,
+              })
+            }
+            onEditShift={(shift) => setShiftModal({ shift })}
+            onDeleteShift={(id) => setDeleteShiftId(id)}
+            onMoveShift={(shiftId, employeeId, date) =>
+              updateShift.mutate({
+                id: shiftId,
+                updates: { employee_id: employeeId, shift_date: date },
+              })
+            }
+          />
+        </div>
       )}
 
       {shiftModal && schedule && (
@@ -256,6 +283,22 @@ export default function SchedulesPage() {
             setGenerateConfirmOpen(false);
           }}
           onCancel={() => setGenerateConfirmOpen(false)}
+        />
+      )}
+
+      {clearConfirmOpen && (
+        <ConfirmModal
+          title="Clear this week?"
+          description={`Remove all ${schedule?.shifts?.length ?? 0} shifts from ${weekLabel}. The schedule itself stays — you can start fresh or regenerate. This can't be undone.`}
+          confirmLabel="Clear schedule"
+          isPending={clearShifts.isPending}
+          onConfirm={() => {
+            const ids = (schedule?.shifts ?? []).map((s) => s.id);
+            clearShifts.mutate(ids, {
+              onSettled: () => setClearConfirmOpen(false),
+            });
+          }}
+          onCancel={() => setClearConfirmOpen(false)}
         />
       )}
 
