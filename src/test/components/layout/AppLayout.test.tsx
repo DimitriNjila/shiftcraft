@@ -27,7 +27,7 @@ vi.mock('@/lib/hooks/use-restaurant', () => ({
 function setup() {
   mockUseAuth.mockReturnValue({ ...mockAuthValue });
   mockUseRestaurant.mockReturnValue({
-    data: { id: 'r1', name: 'Test Restaurant', team_size: '6–20', onboarding_completed: true },
+    data: { id: 'r1', name: 'Test Restaurant', team_size: '6–20', setup_started: true },
     status: 'success',
     refetch: vi.fn(),
   });

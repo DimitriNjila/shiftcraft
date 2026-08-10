@@ -25,12 +25,37 @@ export function useUpdateShift(scheduleId: string) {
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: UpdateShiftRequest }) =>
       shiftsApi.update(id, updates),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['schedule', scheduleId] });
-      toast.success('Shift updated');
+
+    // Optimistic — most updates in this app are drag-and-drop moves. The
+    // shift needs to appear in its new cell the instant the pointer is
+    // released, otherwise the drop feels laggy while we wait for the
+    // network round-trip. We patch the schedule cache in place, snapshot
+    // the old state for rollback, and let onSettled reconcile after.
+    onMutate: async ({ id, updates }) => {
+      await queryClient.cancelQueries({ queryKey: ['schedule', scheduleId] });
+      const previousData = queryClient.getQueryData(['schedule', scheduleId]);
+      queryClient.setQueryData(
+        ['schedule', scheduleId],
+        (old: { shifts?: Shift[] } | undefined) => {
+          if (!old?.shifts) return old;
+          return {
+            ...old,
+            shifts: old.shifts.map((s) =>
+              s.id === id ? { ...s, ...updates } : s,
+            ),
+          };
+        },
+      );
+      return { previousData };
     },
-    onError: (error: AxiosError<{ detail?: string }>) => {
+    // No success toast — a drag-drop update happens dozens of times per
+    // schedule build; a toast per drop is spam. Errors still toast.
+    onError: (error: AxiosError<{ detail?: string }>, _, context) => {
+      queryClient.setQueryData(['schedule', scheduleId], context?.previousData);
       toast.error(error.response?.data?.detail ?? 'Failed to update shift');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['schedule', scheduleId] });
     },
   });
 }

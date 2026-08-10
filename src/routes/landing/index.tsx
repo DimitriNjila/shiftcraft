@@ -99,7 +99,7 @@ export default function LandingPage() {
                   Sign in
                 </Link>
                 <Link to="/signup" className="btnX-ink">
-                  Get started
+                  Start free trial
                 </Link>
               </div>
             </nav>
@@ -115,9 +115,9 @@ export default function LandingPage() {
                   <span className="dim">calm shifts.</span>
                 </h1>
                 <p className="heroX-sub">
-                  Mise en place writes your week from the shift templates you
-                  already run, explains every schedule it drafts, and puts the
-                  finished week in your team's pocket as a simple link.
+                  Photograph the whiteboard schedule you already keep and turn
+                  it into a working roster your team opens on a link — no app to
+                  install, nothing to learn.
                 </p>
                 <div className="heroX-ctas">
                   <Link to="/signup" className="btnX-cta">
@@ -133,9 +133,7 @@ export default function LandingPage() {
                   afternoon.
                 </p>
               </div>
-              <div className="heroX-img">
-                <img src="/dither-peak.png" alt="" />
-              </div>
+              <HeroMock />
             </div>
           </div>
         </section>
@@ -208,6 +206,7 @@ export default function LandingPage() {
             </p>
           </div>
           <Bento />
+          <FeatX />
         </div>
       </section>
 
@@ -400,7 +399,6 @@ export default function LandingPage() {
       <section style={{ paddingTop: 0 }}>
         <div className="container">
           <div className="cta-band">
-            <img src="/dither-peak.png" alt="" className="cta-peak" />
             <span
               className="eyebrow"
               style={{ display: "block", marginBottom: 12 }}
@@ -426,8 +424,8 @@ export default function LandingPage() {
               <Link to="/signup" className="btn btn-primary btn-lg">
                 Start free trial
               </Link>
-              <a href="#" className="btn btn-secondary btn-lg">
-                Book a demo
+              <a href="#features" className="btn btn-secondary btn-lg">
+                See how it works
               </a>
             </div>
           </div>
@@ -684,8 +682,8 @@ function MockStaff({
 function Bento() {
   return (
     <div className="bento">
-      {/* Big AI card */}
-      <div className="bento-card col-4 dark" style={{ minHeight: 330 }}>
+      {/* Big AI card — spans the full 6-column row */}
+      <div className="bento-card col-6 dark" style={{ minHeight: 330 }}>
         <div className="ai-split">
           <div>
             <span className="eyebrow">Mise AI</span>
@@ -767,30 +765,6 @@ function Bento() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Drag-drop */}
-      <div className="bento-card col-2">
-        <div className="icon-tag">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <rect x="3" y="5" width="18" height="16" rx="2" />
-            <path d="M3 10h18M8 3v4M16 3v4" />
-          </svg>
-        </div>
-        <h3>Drag &amp; drop scheduling</h3>
-        <p>
-          Move shifts like physical objects on a marble countertop. Changes sync
-          instantly to staff phones.
-        </p>
       </div>
 
       {/* Labor cost */}
@@ -895,78 +869,195 @@ function Bento() {
         </div>
       </div>
 
-      {/* Share */}
-      <div className="bento-card col-2">
-        <div className="icon-tag">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4z" />
-          </svg>
-        </div>
-        <h3>Share as a link</h3>
-        <p>
-          Your team opens the week in the browser, the full schedule or just
-          their shifts. Nothing to install, no login.
-        </p>
-      </div>
+    </div>
+  );
+}
 
-      {/* PDF */}
-      <div className="bento-card col-2">
-        <div className="icon-tag">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M6 9V2h12v7" />
-            <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" />
-            <rect x="6" y="14" width="12" height="8" />
-          </svg>
-        </div>
-        <h3>Break-room-ready PDF</h3>
-        <p>
-          One click prints a clean, branded weekly grid for the corkboard. Old
-          school, on purpose.
-        </p>
-      </div>
+/* ─── FeatX — illustrated feature grid (4 cards below the bento) ─── */
 
-      {/* Roster */}
-      <div className="bento-card col-2">
-        <div className="icon-tag">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+function FeatX() {
+  return (
+    <div className="featX">
+      <FeatXCard
+        title="Drag & drop scheduling"
+        body="Move shifts like physical objects on a marble countertop. Changes sync instantly to staff phones."
+        illo={
+          <svg viewBox="0 0 200 120" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M30 22v80M64 22v80M98 22v80M132 22v80M166 22v80" stroke="rgba(20,26,22,0.14)" strokeWidth="1" />
+            <rect x="34" y="30" width="26" height="22" rx="6" fill="oklch(0.9 0.05 155)" stroke="none" />
+            <rect x="34" y="58" width="26" height="30" rx="6" fill="oklch(0.9 0.05 155)" stroke="none" />
+            <rect x="102" y="40" width="26" height="26" rx="6" strokeDasharray="4 4" stroke="rgba(20,26,22,0.35)" />
+            <g transform="rotate(-4 128 46)">
+              <rect x="112" y="32" width="30" height="28" rx="7" fill="#fff" />
+              <path d="M118 41h18M118 47h12" strokeWidth="2" />
+            </g>
+            <path d="M144 66l4 12 3.5-4.5 5.5 2z" fill="currentColor" stroke="none" />
+          </svg>
+        }
+      />
+      <FeatXCard
+        title="Share as a link"
+        body="Your team opens the week in the browser, the full schedule or just their shifts. Nothing to install, no login."
+        illo={
+          <svg viewBox="0 0 200 120" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="58" y="18" width="52" height="86" rx="10" fill="#fff" />
+            <path d="M76 26h16" strokeWidth="2" />
+            <rect x="66" y="38" width="36" height="12" rx="4" fill="oklch(0.9 0.05 155)" stroke="none" />
+            <rect x="66" y="54" width="36" height="12" rx="4" fill="oklch(0.92 0.03 100)" stroke="none" />
+            <rect x="66" y="70" width="36" height="12" rx="4" fill="oklch(0.92 0.03 100)" stroke="none" />
+            <rect x="96" y="44" width="66" height="20" rx="10" fill="#0d2018" stroke="none" />
+            <path d="M106 54h4a4 4 0 004-4M118 54h-4a4 4 0 01-4 4" stroke="#fff" strokeWidth="1.6" />
+            <path d="M128 54h26" stroke="rgba(255,255,255,0.55)" strokeWidth="2" />
+            <path d="M168 40c6 4 6 24 0 28M176 34c10 7 10 33 0 40" stroke="rgba(20,26,22,0.3)" />
+          </svg>
+        }
+      />
+      <FeatXCard
+        title="Break-room-ready PDF"
+        body="One click prints a clean, branded weekly grid for the corkboard. Old school, on purpose."
+        illo={
+          <svg viewBox="0 0 200 120" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="48" y="36" width="104" height="30" rx="8" fill="oklch(0.9 0.05 155)" stroke="none" />
+            <rect x="48" y="36" width="104" height="30" rx="8" />
+            <circle cx="140" cy="51" r="3" fill="currentColor" stroke="none" />
+            <path d="M66 36v-8h68v8" />
+            <rect x="70" y="56" width="60" height="46" rx="4" fill="#fff" />
+            <path d="M78 68h44M78 76h44M78 84h30" stroke="rgba(20,26,22,0.35)" strokeWidth="1.5" />
+            <path d="M78 92h20" strokeWidth="2" />
+          </svg>
+        }
+      />
+      <FeatXCard
+        title="Your whole crew, one roster"
+        body="Roles, wages, and availability in one place. The source every schedule pulls from."
+        illo={
+          <svg viewBox="0 0 200 120" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="52" y="24" width="96" height="72" rx="10" fill="#fff" />
+            <circle cx="72" cy="44" r="8" fill="oklch(0.9 0.05 155)" stroke="none" />
+            <circle cx="72" cy="44" r="8" />
+            <path d="M88 40h34M88 48h22" stroke="rgba(20,26,22,0.35)" strokeWidth="1.5" />
+            <circle cx="72" cy="72" r="8" fill="oklch(0.92 0.06 30)" stroke="none" />
+            <circle cx="72" cy="72" r="8" />
+            <path d="M88 68h34M88 76h22" stroke="rgba(20,26,22,0.35)" strokeWidth="1.5" />
+            <rect x="122" y="64" width="36" height="16" rx="8" fill="#0d2018" stroke="none" />
+            <path d="M130 72h20" stroke="#fff" strokeWidth="1.6" />
+          </svg>
+        }
+      />
+    </div>
+  );
+}
+
+function FeatXCard({
+  title,
+  body,
+  illo,
+}: {
+  title: string;
+  body: string;
+  illo: React.ReactNode;
+}) {
+  return (
+    <div className="featX-card">
+      <div className="featX-illo">{illo}</div>
+      <h3>{title}</h3>
+      <p>{body}</p>
+    </div>
+  );
+}
+
+/* ─── HeroMock — editorial "day card" that replaces the pixel image ─── */
+
+function HeroMock() {
+  return (
+    <div className="hero-mock" aria-hidden="true">
+      <div className="hero-card">
+        <div className="card-head">
+          <span className="card-brand">
+            <span className="ast">✳</span> Mise en place
+          </span>
+          <span className="card-day">Wed · Apr 22</span>
+        </div>
+        <h3>Today's pass</h3>
+        <div className="card-shifts">
+          <HeroShift
+            time="06:00"
+            name="Amelia O."
+            role="Opening bar"
+            tag="Lead"
+            hue={155}
+          />
+          <HeroShift
+            time="07:00"
+            name="Jude N."
+            role="Weekend bar"
+            tag="Barista"
+            hue={30}
+          />
+          <HeroShift
+            time="04:00"
+            name="Helena R."
+            role="Morning bake"
+            tag="Baker"
+            hue={280}
+          />
+          <HeroShift
+            time="12:00"
+            name="Marcus L."
+            role="Register"
+            tag="Cashier"
+            hue={210}
+          />
+        </div>
+        <div className="card-foot">
+          <span className="foot-covered">Fully covered · 24h</span>
+          <span className="foot-shared">shared 12m ago</span>
+        </div>
+      </div>
+      <div className="hero-note">
+        <div className="note-dot">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8z" />
           </svg>
         </div>
-        <h3>Your whole crew, one roster</h3>
-        <p>
-          Roles, wages, and availability in one place. The source every schedule
-          pulls from.
-        </p>
+        <div className="note-body">
+          <div className="note-title">Sat 2p–8p is one barista short</div>
+          <div className="note-sub">Mise AI · 96% confidence</div>
+        </div>
       </div>
+    </div>
+  );
+}
+
+function HeroShift({
+  time,
+  name,
+  role,
+  tag,
+  hue,
+}: {
+  time: string;
+  name: string;
+  role: string;
+  tag: string;
+  hue: number;
+}) {
+  return (
+    <div className="hero-shift">
+      <span className="time">{time}</span>
+      <div className="who">
+        <span className="name">{name}</span>
+        <span className="role">{role}</span>
+      </div>
+      <span
+        className="role-tag"
+        style={{
+          background: `oklch(0.9 0.05 ${hue})`,
+          color: `oklch(0.3 0.08 ${hue})`,
+        }}
+      >
+        {tag}
+      </span>
     </div>
   );
 }

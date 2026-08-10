@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
 import { toast } from 'sonner';
 import { employeesApi } from '@/lib/api/employees';
+import { tickOnboardStep } from '@/lib/utils/onboarding';
 import type { Employee, CreateEmployeeRequest, UpdateEmployeeRequest } from '@/lib/types/employee';
 
 export function useEmployees(restaurantId: string | undefined) {
@@ -20,6 +21,7 @@ export function useCreateEmployee() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['employees', variables.restaurant_id] });
       toast.success('Employee added');
+      tickOnboardStep('staff');
     },
     onError: (error: AxiosError<{ detail?: string }>) => {
       toast.error(error.response?.data?.detail ?? 'Failed to add employee');

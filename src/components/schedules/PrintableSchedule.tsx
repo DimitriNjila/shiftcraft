@@ -71,6 +71,23 @@ export function PrintableSchedule({
     new Set(shifts.map((s) => empById.get(s.employee_id)?.role).filter(Boolean)),
   ) as string[];
 
+  // Density-based scaling — everything on the sheet (padding, gaps, font
+  // sizes, corner radii) is expressed as `calc(N * var(--ps-scale))` in
+  // index.css. We pick a scale bucket from the busiest day so a 20-shifts-
+  // per-day Saturday still fits on one page and looks composed instead of
+  // clipped. Roles are dropped at ultra-dense to buy back vertical room.
+  const maxPerDay = Math.max(
+    0,
+    ...Array.from(byDate.values()).map((arr) => arr.length),
+  );
+  const scale =
+    maxPerDay <= 7 ? 1
+    : maxPerDay <= 11 ? 0.86
+    : maxPerDay <= 15 ? 0.72
+    : maxPerDay <= 20 ? 0.6
+    : 0.5;
+  const showRole = maxPerDay <= 15;
+
   const now = new Date();
   const publishedOn = now.toLocaleDateString("en-US", {
     month: "short",
@@ -78,7 +95,10 @@ export function PrintableSchedule({
   });
 
   return (
-    <div className="printable-schedule">
+    <div
+      className="printable-schedule"
+      style={{ ["--ps-scale" as string]: scale }}
+    >
       {/* Header rail */}
       <header className="ps-head">
         <div className="ps-mark" aria-hidden>
@@ -137,7 +157,7 @@ export function PrintableSchedule({
                       <div className="ps-name">
                         {first} {initial}
                       </div>
-                      {role && (
+                      {role && showRole && (
                         <div className="ps-role">{role}</div>
                       )}
                     </div>

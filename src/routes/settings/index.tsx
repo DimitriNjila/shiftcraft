@@ -58,7 +58,7 @@ export default function SettingsPage() {
 
   return (
     <div
-      className="fade-in"
+      className="fade-in mobile-stack"
       style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 24 }}
     >
       <aside style={{ display: "flex", flexDirection: "column", gap: 2 }}>

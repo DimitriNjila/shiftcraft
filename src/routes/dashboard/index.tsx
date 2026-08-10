@@ -244,7 +244,13 @@ export default function DashboardPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* Stat row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: 16,
+        }}
+      >
         <StatCard
           icon={Users}
           label="Active staff"
@@ -279,6 +285,7 @@ export default function DashboardPage() {
 
       {/* Middle row: Trend chart + AI panel */}
       <div
+        className="mobile-stack"
         style={{
           display: "grid",
           gridTemplateColumns: "1.9fr 1fr",
@@ -292,6 +299,7 @@ export default function DashboardPage() {
 
       {/* Bottom row: Heatmap + Today's shifts */}
       <div
+        className="mobile-stack"
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1.6fr",

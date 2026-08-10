@@ -5,5 +5,5 @@ export interface RestaurantSettings {
   timezone: string;
   address?: string;
   phone?: string;
-  onboarding_completed: boolean;
+  setup_started: boolean;
 }

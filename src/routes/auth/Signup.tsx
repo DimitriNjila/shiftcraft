@@ -102,13 +102,28 @@ export default function SignupPage() {
     }
     setLoading(true);
     try {
-      await signUp(form.email, form.password, form.fullName, {
-        cafe_name: form.cafe,
-        team_size: form.size,
-        role: form.role,
-      });
-      toast.success("Account created! Check your email to confirm.");
-      navigate("/login");
+      const { signedIn } = await signUp(
+        form.email,
+        form.password,
+        form.fullName,
+        {
+          cafe_name: form.cafe,
+          team_size: form.size,
+          role: form.role,
+        },
+      );
+      if (signedIn) {
+        // Email confirmation is disabled — the user is authenticated
+        // right now. Route straight into onboarding.
+        toast.success("Welcome to Mise en Place");
+        navigate("/setup");
+      } else {
+        // Email confirmation is on — the user must click the emailed
+        // link before they can sign in. Route to a friendly holding
+        // state.
+        toast.success("Account created — check your email to confirm.");
+        navigate("/login");
+      }
     } catch (err: unknown) {
       toast.error(
         err instanceof Error ? err.message : "Failed to create account",

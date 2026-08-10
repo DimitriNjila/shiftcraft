@@ -1,4 +1,5 @@
 import { CalendarDays, Edit2, EyeOff } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import type { Employee } from "@/lib/types/employee";
 import { Avatar } from "@/components/ui/Avatar";
 import { roleHue } from "@/lib/utils/roles";
@@ -49,14 +50,33 @@ export function EmployeeCard({
   onAvailability,
 }: EmployeeCardProps) {
   const hue = roleHue(employee.role);
+  const navigate = useNavigate();
+
+  // Card body (avatar + name + stats) navigates to the detail page.
+  // Individual action buttons stop propagation so their clicks don't
+  // trigger the navigation.
+  const openDetail = () => navigate(`/employees/${employee.id}`);
+  const stop = (e: React.MouseEvent) => e.stopPropagation();
+
   return (
     <div
       className="card"
+      role="link"
+      tabIndex={0}
+      onClick={openDetail}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openDetail();
+        }
+      }}
       style={{
-        transition: "transform 0.14s ease",
+        transition: "transform 0.14s ease, box-shadow 0.14s ease",
+        cursor: "pointer",
       }}
       onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-2px)")}
       onMouseLeave={(e) => (e.currentTarget.style.transform = "none")}
+      aria-label={`Open ${employee.name}'s details`}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <Avatar name={employee.name} size={44} />
@@ -141,7 +161,10 @@ export function EmployeeCard({
         <div style={{ display: "flex", gap: 4 }}>
           <button
             type="button"
-            onClick={() => onAvailability(employee)}
+            onClick={(e) => {
+              stop(e);
+              onAvailability(employee);
+            }}
             className="btn btn-icon btn-ghost"
             aria-label={`Manage availability for ${employee.name}`}
             title="Manage availability"
@@ -150,7 +173,10 @@ export function EmployeeCard({
           </button>
           <button
             type="button"
-            onClick={() => onEdit(employee)}
+            onClick={(e) => {
+              stop(e);
+              onEdit(employee);
+            }}
             className="btn btn-icon btn-ghost"
             aria-label={`Edit ${employee.name}`}
           >
@@ -158,7 +184,10 @@ export function EmployeeCard({
           </button>
           <button
             type="button"
-            onClick={() => onRemove(employee)}
+            onClick={(e) => {
+              stop(e);
+              onRemove(employee);
+            }}
             className="btn btn-icon btn-ghost"
             style={{ color: "var(--warning)" }}
             aria-label={`Disable ${employee.name}`}

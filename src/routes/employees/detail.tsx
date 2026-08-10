@@ -263,6 +263,7 @@ function OverviewTab({ employee }: { employee: Employee }) {
 
   return (
     <div
+      className="mobile-stack"
       style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20 }}
     >
       {/* Left — stats + upcoming shifts */}
@@ -454,12 +455,21 @@ function AvailabilityTab({ employee }: { employee: Employee }) {
     { id: 3, label: "Evening", range: "5p–10p", start: 17, end: 22 },
   ];
 
+  // A block is "available" if any window on that day OVERLAPS the block —
+  // not only when the window fully contains it. An employee who's free
+  // 9a–5p should still light up the Morning (8–12) and Afternoon (12–17)
+  // blocks even though the window doesn't start at 8. Use decimal hours
+  // so half-hour edges (e.g. 12:30) are respected.
+  const toDecimalHours = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return (h ?? 0) + (m ?? 0) / 60;
+  };
   const isAvailable = (dayIso: number, blockStart: number, blockEnd: number) => {
     return (windows ?? []).some((w) => {
       if (w.day_of_week !== dayIso) return false;
-      const wStart = parseInt(w.start_time.slice(0, 2), 10);
-      const wEnd = parseInt(w.end_time.slice(0, 2), 10);
-      return wStart <= blockStart && wEnd >= blockEnd;
+      const wStart = toDecimalHours(w.start_time);
+      const wEnd = toDecimalHours(w.end_time);
+      return wStart < blockEnd && wEnd > blockStart;
     });
   };
 

@@ -29,7 +29,7 @@ export function OnboardedRoute() {
     return <Navigate to="/setup" replace />;
   }
 
-  if (!restaurant.onboarding_completed) {
+  if (!restaurant.setup_started) {
     return <Navigate to="/setup" replace />;
   }
 

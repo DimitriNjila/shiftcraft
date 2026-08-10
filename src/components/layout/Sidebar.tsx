@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar } from "@/components/ui/Avatar";
 import { BrandMark, Wordmark } from "@/components/ui/BrandMark";
+import { SetupChecklist } from "@/components/layout/SetupChecklist";
 
 interface NavDef {
   to: string;
@@ -165,6 +166,11 @@ export function Sidebar({ rail, mobileOpen, onMobileClose }: SidebarProps) {
       </nav>
 
       <div style={{ flex: 1 }} />
+
+      {/* Setup checklist — visible only while the user is mid-onboarding
+          (persisted in localStorage by /setup). Hidden in rail mode so
+          the collapsed sidebar stays icon-only. */}
+      {!rail && <SetupChecklist />}
 
       {/* User card */}
       {!rail ? (

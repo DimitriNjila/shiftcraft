@@ -345,7 +345,7 @@ function TemplatesEmpty({
           className="btn btn-secondary"
           onClick={onImport}
         >
-          <Upload size={14} /> Import from a spreadsheet
+          <Upload size={14} /> Import from a spreadsheet or photo
         </button>
       </div>
       <div className="label-sm" style={{ marginTop: 18, fontSize: 10 }}>
