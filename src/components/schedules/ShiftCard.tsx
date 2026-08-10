@@ -4,26 +4,34 @@ import { CSS } from "@dnd-kit/utilities";
 import { formatShiftTime } from "@/lib/utils/dates";
 import type { Shift } from "@/lib/types/schedule";
 
-const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
-  Server: { bg: "oklch(0.91 0.08 155)", text: "oklch(0.24 0.14 155)" },
-  Cook: { bg: "oklch(0.92 0.07 20)", text: "oklch(0.30 0.14 20)" },
-  Host: { bg: "oklch(0.90 0.07 270)", text: "oklch(0.26 0.10 270)" },
-  Manager: { bg: "oklch(0.91 0.07 55)", text: "oklch(0.30 0.13 55)" },
+/** Role → hue for oklch color derivation. Aligned with the design's role palette. */
+const ROLE_HUE: Record<string, number> = {
+  Server: 155,
+  Cook: 30,
+  Host: 210,
+  Manager: 280,
+  Baker: 280,
+  Barista: 30,
+  Cashier: 210,
+  Lead: 155,
 };
 
-const DEFAULT_COLORS = {
-  bg: "oklch(0.92 0.04 240)",
-  text: "oklch(0.28 0.08 240)",
-};
+const DEFAULT_HUE = 240;
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function getRoleColors(role: string) {
-  return ROLE_COLORS[role] ?? DEFAULT_COLORS;
+  const hue = ROLE_HUE[role] ?? DEFAULT_HUE;
+  return {
+    bg: `oklch(0.88 0.07 ${hue})`,
+    text: `oklch(0.28 0.08 ${hue})`,
+    stripe: `oklch(0.55 0.14 ${hue})`,
+  };
 }
 
 interface ShiftCardProps {
   shift: Shift;
   role: string;
+  employeeName?: string;
   onEdit: () => void;
   onDelete: () => void;
   dragOverlay?: boolean;
@@ -32,11 +40,12 @@ interface ShiftCardProps {
 export function ShiftCard({
   shift,
   role,
+  employeeName,
   onEdit,
   onDelete,
   dragOverlay = false,
 }: ShiftCardProps) {
-  const { bg, text } = getRoleColors(role);
+  const { bg, text, stripe } = getRoleColors(role);
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -56,11 +65,24 @@ export function ShiftCard({
       ? `${shift.duration_hours}h`
       : `${shift.duration_hours.toFixed(1)}h`;
 
-  const baseStyle: React.CSSProperties = {
+  const style: React.CSSProperties = {
     background: bg,
     color: text,
     transform: CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.3 : 1,
+    opacity: isDragging ? 0.35 : 1,
+    borderRadius: 7,
+    padding: "6px 8px 6px 10px",
+    fontSize: 11,
+    cursor: "grab",
+    position: "relative",
+    overflow: "hidden",
+    boxShadow: "inset 0 0 0 1px color-mix(in oklab, currentColor 8%, transparent)",
+    flex: 1,
+    minHeight: 54,
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
+    userSelect: "none",
     ...(dragOverlay && {
       transform: "scale(1.03)",
       boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
@@ -72,21 +94,53 @@ export function ShiftCard({
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      style={baseStyle}
-      className="group relative rounded-md px-3 py-2.5 cursor-grab active:cursor-grabbing select-none"
+      style={style}
       onClick={onEdit}
       role="button"
       tabIndex={0}
-      aria-label={`Edit shift: ${startLabel} – ${endLabel}`}
+      aria-label={
+        employeeName
+          ? `Edit shift for ${employeeName}: ${startLabel} – ${endLabel}`
+          : `Edit shift: ${startLabel} – ${endLabel}`
+      }
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") onEdit();
       }}
+      className="group"
     >
-      <p className="text-[13px] font-bold font-label leading-tight">
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 6,
+          bottom: 6,
+          width: 3,
+          borderRadius: 2,
+          background: stripe,
+        }}
+      />
+      <div className="mono" style={{ fontWeight: 600, fontSize: 11.5 }}>
         {startLabel} – {endLabel}
-      </p>
-      <p className="text-[11px] font-label opacity-70 mt-1">{hours}</p>
-
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          marginTop: 2,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 10,
+            fontFamily: "var(--font-label)",
+            fontWeight: 500,
+            opacity: 0.85,
+          }}
+        >
+          {hours}
+        </span>
+      </div>
       <button
         type="button"
         onPointerDown={(e) => e.stopPropagation()}
@@ -94,11 +148,26 @@ export function ShiftCard({
           e.stopPropagation();
           onDelete();
         }}
-        className="absolute top-1.5 right-1.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity rounded-md p-0.5 cursor-pointer"
-        style={{ color: text }}
         aria-label="Delete shift"
+        title="Delete shift"
+        className="shift-delete-btn"
+        style={{
+          position: "absolute",
+          top: 4,
+          right: 4,
+          padding: 3,
+          borderRadius: 5,
+          background: "color-mix(in oklab, currentColor 12%, transparent)",
+          border: "none",
+          color: text,
+          cursor: "pointer",
+          transition: "background 0.12s, opacity 0.12s",
+          opacity: 0.7,
+          display: "grid",
+          placeItems: "center",
+        }}
       >
-        <Trash2 size={15} />
+        <Trash2 size={12} />
       </button>
     </div>
   );

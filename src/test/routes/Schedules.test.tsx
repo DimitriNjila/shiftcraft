@@ -13,7 +13,7 @@ vi.mock("@/contexts/AuthContext", () => ({
 
 vi.mock("@/lib/hooks/use-restaurant", () => ({
   useRestaurant: () => ({
-    data: { id: "r1", name: "Test Café", onboarding_completed: true },
+    data: { id: "r1", name: "Test Café", setup_started: true },
   }),
 }));
 

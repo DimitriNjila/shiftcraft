@@ -1,14 +1,12 @@
 import { useState } from "react";
-import { X, Plus, Info } from "lucide-react";
+import { X, Plus } from "lucide-react";
 import type { AxiosError } from "axios";
 import {
   useAvailability,
   useAddAvailability,
   useDeleteAvailability,
 } from "@/lib/hooks/use-availability";
-import { useShiftTemplates } from "@/lib/hooks/use-templates";
-import { useRestaurant } from "@/lib/hooks/use-restaurant";
-import { toHHMM, toHHMMSS, formatShiftTime } from "@/lib/utils/dates";
+import { toHHMM, toHHMMSS } from "@/lib/utils/dates";
 import type { Employee } from "@/lib/types/employee";
 import type { AvailabilityWindow } from "@/lib/types/availability";
 
@@ -196,63 +194,6 @@ function DayColumn({
   );
 }
 
-// ── Template reference strip ─────────────────────────────────
-
-function TemplateStrip({ restaurantId }: { restaurantId: string }) {
-  const { data: record } = useShiftTemplates(restaurantId);
-  const templates = record?.templates ?? [];
-  if (templates.length === 0) return null;
-
-  // Deduplicate by time window so we don't show the same slot 3×
-  const unique = Array.from(
-    new Map(
-      templates.map((t) => [
-        `${t.day_of_week}|${t.start_time}|${t.end_time}|${t.role}`,
-        t,
-      ]),
-    ).values(),
-  ).sort(
-    (a, b) =>
-      a.day_of_week - b.day_of_week || a.start_time.localeCompare(b.start_time),
-  );
-
-  return (
-    <div className="flex items-start gap-2.5 rounded-xl bg-surface-low px-3.5 py-3">
-      <Info size={13} className="text-on-surface-faint shrink-0 mt-px" />
-      <div className="min-w-0">
-        <p className="label-md text-on-surface-muted mb-1.5">
-          Windows must{" "}
-          <strong className="text-on-surface font-semibold">fully cover</strong>{" "}
-          a shift to count as available. Your shift templates:
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {unique.map((t) => {
-            const dayShort =
-              DAYS.find((d) => d.num === t.day_of_week)?.short ?? "";
-            return (
-              <span
-                key={`${t.day_of_week}|${t.start_time}|${t.end_time}|${t.role}`}
-                className="inline-flex items-center gap-1 rounded-md bg-surface px-2 py-1 label-md"
-                style={{ fontSize: 11 }}
-              >
-                <span className="font-semibold text-on-surface">
-                  {dayShort}
-                </span>
-                <span className="text-on-surface-faint">·</span>
-                <span className="mono text-on-surface-muted">
-                  {formatShiftTime(t.start_time)}–{formatShiftTime(t.end_time)}
-                </span>
-                <span className="text-on-surface-faint">·</span>
-                <span className="text-on-surface-muted">{t.role}</span>
-              </span>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Main modal ───────────────────────────────────────────────
 
 export interface AvailabilityModalProps {
@@ -264,8 +205,6 @@ export function AvailabilityModal({
   employee,
   onClose,
 }: AvailabilityModalProps) {
-  const { data: restaurant } = useRestaurant();
-
   const { data: windows = [], isLoading } = useAvailability(employee.id);
   const addAvailability = useAddAvailability(employee.id);
   const deleteAvailability = useDeleteAvailability(employee.id);
@@ -339,9 +278,6 @@ export function AvailabilityModal({
             <X size={17} />
           </button>
         </div>
-
-        {/* Template reference */}
-        {restaurant?.id && <TemplateStrip restaurantId={restaurant.id} />}
 
         {/* No windows banner */}
         {hasNoWindows && (

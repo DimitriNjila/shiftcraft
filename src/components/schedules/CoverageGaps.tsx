@@ -1,5 +1,6 @@
-import { AlertTriangle, CheckCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { formatShiftTime } from "@/lib/utils/dates";
+import { roleHue } from "@/lib/utils/roles";
 import type { CoverageGap } from "@/lib/utils/coverage";
 
 interface CoverageGapsProps {
@@ -8,90 +9,99 @@ interface CoverageGapsProps {
   scheduledHours: number;
 }
 
-export function CoverageGaps({
-  gaps,
-  requiredHours,
-  scheduledHours,
-}: CoverageGapsProps) {
+/**
+ * Open-shifts strip. Mirrors the design's horizontal warning-tinted rail:
+ * an alert icon + "N open shifts need coverage" title on the left, and a
+ * horizontally-scrollable row of open-slot chips (day · time · role) on
+ * the right. Hidden entirely when nothing needs covering.
+ */
+export function CoverageGaps({ gaps }: CoverageGapsProps) {
   const totalUnfilled = gaps.reduce((sum, g) => sum + g.gap, 0);
-  const hoursLabel = (h: number) =>
-    h % 1 === 0 ? `${h}h` : `${h.toFixed(1)}h`;
-
-  if (gaps.length === 0 && requiredHours > 0) {
-    return (
-      <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-primary-fixed/40 bg-primary-fixed/10 px-4 py-3">
-        <CheckCircle size={15} className="text-primary shrink-0" />
-        <p className="body-sm text-on-surface">
-          All {hoursLabel(requiredHours)} of required coverage filled
-        </p>
-      </div>
-    );
-  }
-
-  if (gaps.length === 0) return null;
+  if (totalUnfilled === 0) return null;
 
   return (
-    <div className="mb-6 rounded-xl border border-warning/30 bg-warning-container/20 px-4 py-3.5">
-      <div className="flex items-start gap-3">
-        <AlertTriangle size={15} className="text-warning shrink-0 mt-px" />
-        <div className="min-w-0 flex-1">
-          <p className="body-sm font-semibold text-on-surface">
-            {totalUnfilled} slot{totalUnfilled !== 1 ? "s" : ""} still need
-            coverage
-            <span className="font-normal text-on-surface-muted ml-2">
-              {hoursLabel(scheduledHours)} scheduled ·{" "}
-              {hoursLabel(requiredHours)} required
-            </span>
-          </p>
-
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
-            {gaps.map((gap) => (
-              <GapPill
-                key={`${gap.dayName}-${gap.role}-${gap.start_time}`}
-                gap={gap}
-              />
-            ))}
-          </div>
+    <div
+      style={{
+        padding: "14px 18px",
+        background:
+          "color-mix(in oklab, var(--warning-container) 40%, var(--surface-container))",
+        borderRadius: "var(--r-xl)",
+        boxShadow: "inset 0 0 0 1px var(--hairline)",
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+      }}
+    >
+      <AlertCircle size={18} style={{ color: "var(--warning)", flexShrink: 0 }} />
+      <div style={{ flexShrink: 0 }}>
+        <div className="title-sm" style={{ fontSize: 13 }}>
+          {totalUnfilled} open shift{totalUnfilled === 1 ? "" : "s"} need
+          coverage
         </div>
+        <div className="label-sm" style={{ fontSize: 10 }}>
+          Drag onto a staff row, or use Generate schedule
+        </div>
+      </div>
+      <div
+        style={{
+          width: 1,
+          height: 28,
+          background: "var(--surface-high)",
+          flexShrink: 0,
+        }}
+      />
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          gap: 8,
+          overflowX: "auto",
+          minWidth: 0,
+        }}
+      >
+        {gaps.flatMap((g) => {
+          const count = Math.max(1, g.gap);
+          return Array.from({ length: count }, (_, i) => (
+            <GapChip key={`${g.dateStr}-${g.role}-${g.start_time}-${i}`} gap={g} />
+          ));
+        })}
       </div>
     </div>
   );
 }
 
-function GapPill({ gap }: { gap: CoverageGap }) {
-  const start = formatShiftTime(gap.start_time);
-  const end = formatShiftTime(gap.end_time);
-
+function GapChip({ gap }: { gap: CoverageGap }) {
+  const hue = roleHue(gap.role);
   return (
-    <div className="inline-flex items-center gap-1.5 rounded-lg border border-surface-highest bg-surface px-2.5 py-1.5">
-      <span className="label-md font-semibold" style={{ fontSize: 11 }}>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "8px 12px",
+        background: "var(--surface-lowest)",
+        borderRadius: 10,
+        cursor: "grab",
+        flexShrink: 0,
+        boxShadow: "var(--shadow-ambient)",
+      }}
+    >
+      <div className="label-sm" style={{ fontSize: 10 }}>
         {gap.dayName}
-      </span>
-      <span className="text-on-surface-faint" style={{ fontSize: 11 }}>
-        ·
-      </span>
-      <span className="label-md text-on-surface-muted" style={{ fontSize: 11 }}>
-        {gap.role}
-      </span>
-      <span className="text-on-surface-faint" style={{ fontSize: 11 }}>
-        ·
-      </span>
-      <span
-        className="label-md mono text-on-surface-muted"
-        style={{ fontSize: 11 }}
-      >
-        {start}–{end}
-      </span>
-      <span
-        className="ml-0.5 rounded-full px-1.5 py-0.5 label-md font-bold mono"
+      </div>
+      <div className="mono" style={{ fontSize: 12 }}>
+        {formatShiftTime(gap.start_time)} – {formatShiftTime(gap.end_time)}
+      </div>
+      <div
+        className="chip"
         style={{
+          background: `oklch(0.88 0.04 ${hue})`,
+          color: `oklch(0.3 0.08 ${hue})`,
           fontSize: 10,
-          background: "var(--color-warning-container)",
-          color: "var(--color-warning)",
         }}
       >
-        {gap.filled}/{gap.needed}
-      </span>
+        {gap.role}
+      </div>
     </div>
   );
 }

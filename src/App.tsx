@@ -25,6 +25,10 @@ const TemplatesPage = lazy(() => import("@/routes/templates/index"));
 const SettingsPage = lazy(() => import("@/routes/settings/index"));
 const SetupPage = lazy(() => import("@/routes/setup/index"));
 const NotFoundPage = lazy(() => import("@/routes/not-found/index"));
+const SharedSchedulePage = lazy(() => import("@/routes/shared/index"));
+const PrintPreviewPage = lazy(() => import("@/routes/schedules/print"));
+const ImportTemplatesPage = lazy(() => import("@/routes/import/index"));
+const EmployeeDetailPage = lazy(() => import("@/routes/employees/detail"));
 
 function PageFallback() {
   return (
@@ -62,6 +66,16 @@ export default function App() {
                 element={<ResetPasswordConfirmPage />}
               />
 
+              {/* Public share-link view — no auth required. */}
+              <Route
+                path="/shared/:token"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <SharedSchedulePage />
+                  </Suspense>
+                }
+              />
+
               {/* Protected app routes */}
               <Route element={<ProtectedRoute />}>
                 <Route
@@ -72,12 +86,30 @@ export default function App() {
                     </Suspense>
                   }
                 />
+                {/* PDF preview — standalone (no sidebar/topbar) so the
+                    on-screen preview matches the printed output. */}
+                <Route
+                  path="/schedules/print"
+                  element={
+                    <Suspense fallback={<PageFallback />}>
+                      <PrintPreviewPage />
+                    </Suspense>
+                  }
+                />
                 <Route element={<OnboardedRoute />}>
                   <Route element={<AppLayout />}>
                     <Route path="/dashboard" element={<DashboardPage />} />
                     <Route path="/employees" element={<EmployeesPage />} />
+                    <Route
+                      path="/employees/:id"
+                      element={<EmployeeDetailPage />}
+                    />
                     <Route path="/schedules" element={<SchedulesPage />} />
                     <Route path="/templates" element={<TemplatesPage />} />
+                    <Route
+                      path="/templates/import"
+                      element={<ImportTemplatesPage />}
+                    />
                     <Route path="/settings" element={<SettingsPage />} />
                   </Route>
                 </Route>

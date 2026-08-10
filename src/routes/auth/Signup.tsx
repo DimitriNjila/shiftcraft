@@ -1,11 +1,14 @@
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Sparkles, Check, X, EyeOff, Eye } from "lucide-react";
+import { ChevronRight, ChevronLeft, Sparkles, EyeOff, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { AuthShell } from "@/components/auth/AuthShell";
+import { EditorialPanel } from "@/components/auth/EditorialPanel";
 
 /* ──────────────────────────────────────────────────────────────
-   Password strength helpers
+   Password validation (kept simple to match design's meter,
+   but with a minimum-length guardrail before advancing steps)
    ────────────────────────────────────────────────────────────── */
 export interface PasswordCriteria {
   length: boolean;
@@ -16,160 +19,111 @@ export interface PasswordCriteria {
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const getPasswordCriteria = (password: string): PasswordCriteria => {
-  return {
-    length: password.length >= 10,
-    uppercase: /[A-Z]/.test(password),
-    lowercase: /[a-z]/.test(password),
-    number: /[0-9]/.test(password),
-    special: /[^A-Za-z0-9]/.test(password),
-  };
-};
+export const getPasswordCriteria = (password: string): PasswordCriteria => ({
+  length: password.length >= 10,
+  uppercase: /[A-Z]/.test(password),
+  lowercase: /[a-z]/.test(password),
+  number: /[0-9]/.test(password),
+  special: /[^A-Za-z0-9]/.test(password),
+});
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const getPasswordStrength = (password: string): number => {
   if (!password) return 0;
   const c = getPasswordCriteria(password);
-  const score = Object.values(c).filter(Boolean).length; // 0–5
-  if (score <= 1) return 1;
-  if (score === 2) return 2;
-  if (score === 3) return 3;
-  if (score >= 4) return 4;
-  return 0;
+  return Object.values(c).filter(Boolean).length;
 };
 
-const CRITERIA_LABELS: { key: keyof PasswordCriteria; label: string }[] = [
-  { key: "length", label: "10+ chars" },
-  { key: "uppercase", label: "A–Z" },
-  { key: "lowercase", label: "a–z" },
-  { key: "number", label: "0–9" },
-  { key: "special", label: "!@#…" },
-];
+type Size = "1-5" | "6-20" | "21-50" | "50+";
+type Role = "owner" | "gm" | "shift";
 
-/** Tailwind bg class for each strength level. */
-function strengthBarColor(strength: number): string {
-  if (strength === 1) return "bg-tertiary-fixed-dim";
-  if (strength === 2) return "bg-warning";
-  if (strength === 3) return "bg-primary-fixed-dim";
-  return "bg-primary";
-}
-
-/* ──────────────────────────────────────────────────────────────
-   Editorial right panel
-   ────────────────────────────────────────────────────────────── */
-const STATS = [
-  { k: "Setup time", v: "< 5 min" },
-  { k: "Free trial", v: "14 days" },
-  { k: "Cancel anytime", v: "∞" },
-] as const;
-
-function EditorialPanel() {
-  return (
-    <div className="editorial-panel">
-      <div className="editorial-gradient-wash" />
-
-      <div className="relative flex items-center gap-2.5">
-        <span className="label-md" style={{ fontSize: 10 }}>
-          14 days free
-        </span>
-        <div className="w-5 h-px bg-outline-variant opacity-40" />
-        <span className="label-md" style={{ fontSize: 10 }}>
-          No card required
-        </span>
-      </div>
-
-      <div className="relative mt-7">
-        <p
-          className="display-lg"
-          style={{ lineHeight: 1.02, fontSize: "3rem" }}
-        >
-          Staff scheduling,
-          <br />
-          <em className="not-italic font-medium text-primary">finally easy.</em>
-        </p>
-        <p className="body-md mt-5 max-w-95 text-on-surface-muted text-[15px] leading-[1.55]">
-          Build your first week's schedule in minutes, not hours. Auto-fill
-          shifts, manage time-off, and keep your whole team in sync.
-        </p>
-      </div>
-
-      <div className="flex-1" />
-
-      <div className="relative grid grid-cols-3 gap-0.5 bg-surface-high rounded-2xl p-0.5">
-        {STATS.map((s) => (
-          <div key={s.k} className="bg-surface-lowest rounded-lg py-4 px-4.5">
-            <div className="label-md" style={{ fontSize: 9.5 }}>
-              {s.k}
-            </div>
-            <div className="headline-md mono mt-1 text-[18px]">{s.v}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ──────────────────────────────────────────────────────────────
-   Validation
-   ────────────────────────────────────────────────────────────── */
-interface SignupForm {
+interface Form {
   fullName: string;
   email: string;
   password: string;
-  confirmPassword: string;
+  cafe: string;
+  size: Size;
+  role: Role;
 }
 
-const validateForm = (form: SignupForm): string | null => {
-  if (!form.fullName.trim()) return "Full name is required";
-  if (!form.email.trim()) return "Email is required";
+const ROLE_OPTIONS: Array<{ id: Role; label: string; sub: string }> = [
+  { id: "owner", label: "Owner / Founder", sub: "You run the whole operation" },
+  { id: "gm", label: "General Manager", sub: "You oversee daily operations" },
+  { id: "shift", label: "Shift Lead", sub: "You run individual shifts" },
+];
 
-  const c = getPasswordCriteria(form.password);
-  if (!c.length) return "Password must be at least 10 characters";
-  if (!c.uppercase) return "Password must contain an uppercase letter";
-  if (!c.lowercase) return "Password must contain a lowercase letter";
-  if (!c.number) return "Password must contain a number";
-  if (!c.special) return "Password must contain a special character";
+const SIZE_OPTIONS: Size[] = ["1-5", "6-20", "21-50", "50+"];
 
-  if (form.password !== form.confirmPassword) return "Passwords do not match";
-
-  return null;
-};
-
-/* ──────────────────────────────────────────────────────────────
-   Signup page
-   ────────────────────────────────────────────────────────────── */
 export default function SignupPage() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
+  const [step, setStep] = useState<0 | 1>(0);
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); 
-  const [form, setForm] = useState<SignupForm>({
+  const [showPassword, setShowPassword] = useState(false);
+  const [form, setForm] = useState<Form>({
     fullName: "",
     email: "",
     password: "",
-    confirmPassword: "",
+    cafe: "",
+    size: "6-20",
+    role: "gm",
   });
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  }
-
-  const set = <K extends keyof SignupForm>(k: K, v: SignupForm[K]) =>
+  const set = <K extends keyof Form>(k: K, v: Form[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const handleSubmit = async (e: FormEvent) => {
+  const canAdvanceStep1 = () => {
+    if (!form.fullName.trim()) {
+      toast.error("Full name is required");
+      return false;
+    }
+    if (!form.email.trim()) {
+      toast.error("Email is required");
+      return false;
+    }
+    const c = getPasswordCriteria(form.password);
+    if (!c.length) {
+      toast.error("Password must be at least 10 characters");
+      return false;
+    }
+    return true;
+  };
+
+  const handleStep1 = (e: FormEvent) => {
     e.preventDefault();
-    const error = validateForm(form);
-    if (error) {
-      toast.error(error);
+    if (canAdvanceStep1()) setStep(1);
+  };
+
+  const handleStep2 = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!form.cafe.trim()) {
+      toast.error("Please tell us the name of your café");
       return;
     }
-
     setLoading(true);
     try {
-      await signUp(form.email, form.password, form.fullName);
-      toast.success("Account created! Check your email to confirm.");
-      navigate("/login");
+      const { signedIn } = await signUp(
+        form.email,
+        form.password,
+        form.fullName,
+        {
+          cafe_name: form.cafe,
+          team_size: form.size,
+          role: form.role,
+        },
+      );
+      if (signedIn) {
+        // Email confirmation is disabled — the user is authenticated
+        // right now. Route straight into onboarding.
+        toast.success("Welcome to Mise en Place");
+        navigate("/setup");
+      } else {
+        // Email confirmation is on — the user must click the emailed
+        // link before they can sign in. Route to a friendly holding
+        // state.
+        toast.success("Account created — check your email to confirm.");
+        navigate("/login");
+      }
     } catch (err: unknown) {
       toast.error(
         err instanceof Error ? err.message : "Failed to create account",
@@ -179,203 +133,325 @@ export default function SignupPage() {
     }
   };
 
-  const strength = getPasswordStrength(form.password);
-  const criteria = getPasswordCriteria(form.password);
-  const passwordsMatch =
-    form.confirmPassword.length > 0 && form.password === form.confirmPassword;
-  const passwordsMismatch =
-    form.confirmPassword.length > 0 && form.password !== form.confirmPassword;
-
   return (
-    <div className="auth-grid">
-      {/* ── Left: form ── */}
-      <div className="flex flex-col pt-9 px-16 pb-12 min-h-screen overflow-y-auto">
-        {/* Logo */}
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2.5 no-underline text-on-surface w-fit"
-        >
-          <div className="brand-logo-mark">S</div>
-          <span className="font-display font-bold text-base tracking-[-0.01em]">
-            Shiftcraft
-          </span>
-        </Link>
+    <AuthShell side={<EditorialPanel variant="signup" />} footerLinks={["terms", "privacy"]}>
+      <div className="label-md">Start a trial · 14 days free</div>
+      <h1 className="display-md" style={{ margin: "6px 0 10px" }}>
+        {step === 0 ? "Create your account." : "Tell us about your café."}
+      </h1>
+      <p
+        className="body-md"
+        style={{ color: "var(--on-surface-muted)", marginBottom: 24 }}
+      >
+        No card required. Cancel anytime.
+      </p>
 
-        {/* Centred form area */}
-        <div className="flex-1 flex items-center justify-start">
-          <div className="w-full max-w-100">
-            <span className="label-md">Start a trial · 14 days free</span>
-            <h1 className="display-md mt-1.5 mb-2.5">Create your account.</h1>
-            <p className="body-md text-on-surface-muted mb-6">
-              No card required. Cancel anytime.
-            </p>
-
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
-              <div>
-                <label htmlFor="fullName" className="field-label">
-                  Full name
-                </label>
-                <input
-                  id="fullName"
-                  value={form.fullName}
-                  onChange={(e) => set("fullName", e.target.value)}
-                  className="input-field"
-                  placeholder="Elena Kovač"
-                  autoComplete="name"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="email" className="field-label">
-                  Work email
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => set("email", e.target.value)}
-                  className="input-field"
-                  placeholder="you@cafe.com"
-                  autoComplete="email"
-                />
-              </div>
-
-              {/* Password + strength */}
-              <div>
-                <label htmlFor="password" className="field-label">
-                  Password
-                </label>
-                <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={form.password}
-                  onChange={(e) => set("password", e.target.value)}
-                  className="input-field"
-                  placeholder="At least 10 characters"
-                  autoComplete="new-password"
-                />
-                <button
-                    type="button"
-                    onClick={togglePasswordVisibility}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-faint focus:outline-none cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button> 
-                </div>
-
-                {/* Strength meter */}
-                <div className="flex gap-1 mt-2">
-                  {[1, 2, 3, 4].map((level) => (
-                    <div
-                      key={level}
-                      className={`flex-1 h-0.75 rounded-sm transition-all duration-300 ${
-                        strength >= level
-                          ? strengthBarColor(strength)
-                          : "bg-surface-highest"
-                      }`}
-                    />
-                  ))}
-                </div>
-
-                {/* Criteria pills — only shown once typing starts */}
-                {form.password.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {CRITERIA_LABELS.map(({ key, label }) => (
-                      <span
-                        key={key}
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium font-label transition-colors ${
-                          criteria[key]
-                            ? "bg-primary-fixed text-primary"
-                            : "bg-surface-highest text-on-surface-faint"
-                        }`}
-                      >
-                        {criteria[key] ? (
-                          <Check size={9} strokeWidth={2.5} />
-                        ) : (
-                          <X size={9} strokeWidth={2.5} />
-                        )}
-                        {label}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Confirm password */}
-              <div>
-                <label htmlFor="confirmPassword" className="field-label">
-                  Confirm password
-                </label>
-                <div className="relative">
-                  <input
-                    id="confirmPassword"
-                    type={showPassword ? "text" : "password"}
-                    value={form.confirmPassword}
-                    onChange={(e) => set("confirmPassword", e.target.value)}
-                    className={`input-field pr-9 ${
-                      passwordsMismatch
-                        ? "shadow-[inset_0_0_0_2px_var(--color-tertiary-fixed-dim)]"
-                        : passwordsMatch
-                          ? "shadow-[inset_0_0_0_2px_var(--color-primary-fixed)]"
-                          : ""
-                    }`}
-                    placeholder="Re-enter your password"
-                    autoComplete="new-password"
-                  />
-                  {/* Match indicator icon */}
-                  {form.confirmPassword.length > 0 && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                      {passwordsMatch ? (
-                        <Check
-                          size={14}
-                          className="text-primary"
-                          strokeWidth={2.5}
-                        />
-                      ) : (
-                        <X
-                          size={14}
-                          className="text-tertiary-fixed-dim"
-                          strokeWidth={2.5}
-                        />
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                className="btn btn-primary justify-center py-3 text-sm mt-2.5"
-                disabled={loading}
-              >
-                {loading ? "Creating account…" : "Start free trial"}
-                {!loading && <Sparkles size={15} />}
-              </button>
-            </form>
-
-            <p className="body-sm text-center mt-5 text-on-surface-muted">
-              Already have an account?{" "}
-              <Link
-                to="/login"
-                className="text-primary font-semibold no-underline"
-              >
-                Sign in
-              </Link>
-            </p>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex gap-4 text-on-surface-faint">
-          <span className="label-sm">© 2026 Shiftcraft</span>
-          <span className="label-sm cursor-pointer">Terms</span>
-          <span className="label-sm cursor-pointer">Privacy</span>
-        </div>
+      {/* Step indicator */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 24 }}>
+        {[0, 1].map((i) => (
+          <div
+            key={i}
+            style={{
+              flex: 1,
+              height: 3,
+              borderRadius: 2,
+              background:
+                step >= i ? "var(--accent)" : "var(--surface-highest)",
+              transition: "background 0.2s",
+            }}
+          />
+        ))}
       </div>
 
-      {/* ── Right: editorial panel ── */}
-      <EditorialPanel />
-    </div>
+      {step === 0 ? (
+        <form
+          onSubmit={handleStep1}
+          style={{ display: "flex", flexDirection: "column", gap: 14 }}
+        >
+          <div>
+            <label htmlFor="fullName" className="label-md" style={{ display: "block", marginBottom: 6 }}>
+              Full name
+            </label>
+            <input
+              id="fullName"
+              value={form.fullName}
+              onChange={(e) => set("fullName", e.target.value)}
+              className="input"
+              placeholder="Elena Kovač"
+              autoComplete="name"
+            />
+          </div>
+          <div>
+            <label htmlFor="email" className="label-md" style={{ display: "block", marginBottom: 6 }}>
+              Work email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={form.email}
+              onChange={(e) => set("email", e.target.value)}
+              className="input"
+              placeholder="you@cafe.com"
+              autoComplete="email"
+            />
+          </div>
+          <div>
+            <label htmlFor="password" className="label-md" style={{ display: "block", marginBottom: 6 }}>
+              Password
+            </label>
+            <div style={{ position: "relative" }}>
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={form.password}
+                onChange={(e) => set("password", e.target.value)}
+                className="input"
+                style={{ paddingRight: 36 }}
+                placeholder="At least 10 characters"
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "var(--on-surface-faint)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 4,
+                }}
+              >
+                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+            {/* Strength meter — 4 bars, filled by length in 3-char steps (matches design) */}
+            <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  style={{
+                    flex: 1,
+                    height: 3,
+                    borderRadius: 2,
+                    background:
+                      form.password.length > i * 3
+                        ? "var(--accent)"
+                        : "var(--surface-highest)",
+                    transition: "background 0.2s",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="btn btn-primary"
+            style={{
+              justifyContent: "center",
+              padding: "12px 14px",
+              fontSize: 14,
+              marginTop: 10,
+            }}
+          >
+            Continue
+            <ChevronRight size={15} />
+          </button>
+        </form>
+      ) : (
+        <form
+          onSubmit={handleStep2}
+          style={{ display: "flex", flexDirection: "column", gap: 14 }}
+        >
+          <div>
+            <label htmlFor="cafe" className="label-md" style={{ display: "block", marginBottom: 6 }}>
+              Café or restaurant name
+            </label>
+            <input
+              id="cafe"
+              value={form.cafe}
+              onChange={(e) => set("cafe", e.target.value)}
+              className="input"
+              placeholder="Meridian Coffee"
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <div className="label-md" style={{ marginBottom: 6 }}>
+              Team size
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                gap: 6,
+              }}
+            >
+              {SIZE_OPTIONS.map((s) => (
+                <button
+                  type="button"
+                  key={s}
+                  onClick={() => set("size", s)}
+                  aria-pressed={form.size === s}
+                  className="mono"
+                  style={{
+                    padding: "10px 6px",
+                    borderRadius: 10,
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    background:
+                      form.size === s
+                        ? "var(--surface-lowest)"
+                        : "var(--surface-highest)",
+                    color:
+                      form.size === s
+                        ? "var(--on-surface)"
+                        : "var(--on-surface-muted)",
+                    boxShadow:
+                      form.size === s
+                        ? "inset 0 0 0 1.5px var(--accent)"
+                        : "none",
+                    transition: "all 0.15s",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="label-md" style={{ marginBottom: 6 }}>
+              Your role
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {ROLE_OPTIONS.map((r) => (
+                <button
+                  type="button"
+                  key={r.id}
+                  onClick={() => set("role", r.id)}
+                  aria-pressed={form.role === r.id}
+                  style={{
+                    padding: "12px 14px",
+                    borderRadius: 12,
+                    textAlign: "left",
+                    background:
+                      form.role === r.id
+                        ? "var(--surface-lowest)"
+                        : "var(--surface-highest)",
+                    boxShadow:
+                      form.role === r.id
+                        ? "inset 0 0 0 1.5px var(--accent)"
+                        : "none",
+                    transition: "all 0.15s",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    border: "none",
+                    cursor: "pointer",
+                    width: "100%",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      background:
+                        form.role === r.id
+                          ? "var(--accent)"
+                          : "var(--surface-high)",
+                      display: "grid",
+                      placeItems: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {form.role === r.id && (
+                      <div
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          background: "white",
+                        }}
+                      />
+                    )}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div className="title-sm" style={{ fontSize: 13 }}>
+                      {r.label}
+                    </div>
+                    <div
+                      className="label-sm"
+                      style={{
+                        fontSize: 10,
+                        textTransform: "none",
+                        letterSpacing: "normal",
+                      }}
+                    >
+                      {r.sub}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <button
+              type="button"
+              onClick={() => setStep(0)}
+              className="btn btn-secondary"
+              style={{ padding: "12px 16px", fontSize: 14 }}
+            >
+              <ChevronLeft size={15} /> Back
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={loading}
+              style={{
+                flex: 1,
+                justifyContent: "center",
+                padding: "12px 14px",
+                fontSize: 14,
+              }}
+            >
+              {loading ? "Creating account…" : "Start free trial"}
+              {!loading && <Sparkles size={15} />}
+            </button>
+          </div>
+        </form>
+      )}
+
+      <p
+        className="body-sm"
+        style={{
+          textAlign: "center",
+          marginTop: 22,
+          color: "var(--on-surface-muted)",
+        }}
+      >
+        Already have an account?{" "}
+        <Link
+          to="/login"
+          style={{
+            color: "var(--accent)",
+            fontWeight: 600,
+            textDecoration: "none",
+          }}
+        >
+          Sign in
+        </Link>
+      </p>
+    </AuthShell>
   );
 }

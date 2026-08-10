@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Zap } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useRestaurant } from "@/lib/hooks/use-restaurant";
 import {
@@ -7,12 +6,20 @@ import {
   useGenerateSchedule,
 } from "@/lib/hooks/use-schedules";
 import { useEmployees } from "@/lib/hooks/use-employees";
-import { useUpdateShift, useDeleteShift } from "@/lib/hooks/use-shifts";
+import {
+  useUpdateShift,
+  useDeleteShift,
+  useClearScheduleShifts,
+} from "@/lib/hooks/use-shifts";
 import { useAnalyzeSchedule } from "@/lib/hooks/use-analysis";
-import { WeekNav } from "@/components/schedules/WeekNav";
+import { useShiftTemplates } from "@/lib/hooks/use-templates";
+import { Send } from "lucide-react";
+import { toast } from "sonner";
+import { ScheduleToolbar } from "@/components/schedules/ScheduleToolbar";
 import { WeeklyGrid } from "@/components/schedules/WeeklyGrid";
 import { ShiftModal } from "@/components/schedules/ShiftModal";
 import { AnalysisModal } from "@/components/schedules/AnalysisModal";
+import { ShareModal } from "@/components/schedules/ShareModal";
 import { CoverageGaps } from "@/components/schedules/CoverageGaps";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -20,11 +27,15 @@ import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import {
   getMondayOfWeek,
   getWeekDays,
+  getWeekRangeLabel,
   toDateStr,
   fromDateStr,
 } from "@/lib/utils/dates";
-import { computeCoverageGaps, computeRequiredHours } from "@/lib/utils/coverage";
-import { useShiftTemplates } from "@/lib/hooks/use-templates";
+import {
+  computeCoverageGaps,
+  computeRequiredHours,
+} from "@/lib/utils/coverage";
+import { usePageMeta } from "@/components/layout/page-meta";
 import type { Shift } from "@/lib/types/schedule";
 
 interface ShiftModalState {
@@ -56,6 +67,7 @@ export default function SchedulesPage() {
   const { data: templateRecord } = useShiftTemplates(restaurant?.id);
   const updateShift = useUpdateShift(schedule?.id ?? "");
   const deleteShift = useDeleteShift(schedule?.id ?? "");
+  const clearShifts = useClearScheduleShifts(schedule?.id ?? "");
   const generateSchedule = useGenerateSchedule();
   const analyzeSchedule = useAnalyzeSchedule();
 
@@ -73,12 +85,36 @@ export default function SchedulesPage() {
       : [];
   const requiredHours = computeRequiredHours(templates);
   const scheduledHours = schedule?.total_hours ?? 0;
+  const openShifts = coverageGaps.reduce((sum, g) => sum + Math.max(0, g.gap), 0);
 
   const [shiftModal, setShiftModal] = useState<ShiftModalState | null>(null);
   const [deleteShiftId, setDeleteShiftId] = useState<string | null>(null);
   const [analysisOpen, setAnalysisOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [generateConfirmOpen, setGenerateConfirmOpen] = useState(false);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [view, setView] = useState<"week" | "day">("week");
 
   const isCurrentWeek = weekStart === getCurrentMondayStr();
+  const weekLabel = getWeekRangeLabel(monday);
+
+  usePageMeta({
+    title: "Weekly schedule",
+    breadcrumbs: ["Schedule", weekLabel],
+    actions: (
+      <button
+        type="button"
+        className="btn btn-primary"
+        disabled={!schedule}
+        onClick={() =>
+          toast.success("Schedule published — team notified")
+        }
+      >
+        <Send size={14} /> Publish
+      </button>
+    ),
+  });
 
   function goToWeek(date: Date) {
     setSearchParams({ week: toDateStr(date) });
@@ -102,10 +138,14 @@ export default function SchedulesPage() {
 
   function handleGenerate() {
     if (!restaurant?.id) return;
-    generateSchedule.mutate({
-      restaurant_id: restaurant.id,
-      week_start: weekStart,
-    });
+    if (schedule) {
+      setGenerateConfirmOpen(true);
+    } else {
+      generateSchedule.mutate({
+        restaurant_id: restaurant.id,
+        week_start: weekStart,
+      });
+    }
   }
 
   function handleAnalyze() {
@@ -122,44 +162,49 @@ export default function SchedulesPage() {
     analyzeSchedule.mutate(schedule.id);
   }
 
+  const filteredEmployees =
+    roleFilter === "all"
+      ? employees
+      : employees.filter((e) => e.role === roleFilter);
+
   return (
-    <>
-      <div className="page-header">
-        <div>
-          <span className="label-md">Planning</span>
-          <h1 className="headline-lg mt-1.5">Weekly schedule</h1>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleGenerate}
-          disabled={generateSchedule.isPending || !restaurant?.id}
-          className="btn btn-primary py-2.5 text-sm gap-2"
-        >
-          <Zap size={15} />
-          {generateSchedule.isPending ? "Generating…" : "Generate"}
-        </button>
-      </div>
-
-      <WeekNav
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <ScheduleToolbar
         monday={monday}
         schedule={schedule}
         laborCost={laborCost}
+        openShifts={openShifts}
+        roleFilter={roleFilter}
+        onRoleFilterChange={setRoleFilter}
+        view={view}
+        onViewChange={setView}
+        isCurrentWeek={isCurrentWeek}
+        isGenerating={generateSchedule.isPending}
+        isAnalyzing={analyzeSchedule.isPending}
+        isClearing={clearShifts.isPending}
+        hasShifts={(schedule?.shifts?.length ?? 0) > 0}
         onPrev={prevWeek}
         onNext={nextWeek}
         onToday={goToday}
+        onShare={() => setShareOpen(true)}
         onAnalyze={handleAnalyze}
-        isCurrentWeek={isCurrentWeek}
-        isAnalyzing={analyzeSchedule.isPending}
+        onGenerate={handleGenerate}
+        onClear={() => setClearConfirmOpen(true)}
       />
 
-      {!isLoading && !isFetching && !error && schedule && templates.length > 0 && (
-        <CoverageGaps
-          gaps={coverageGaps}
-          requiredHours={requiredHours}
-          scheduledHours={scheduledHours}
-        />
-      )}
+      {!isLoading &&
+        !isFetching &&
+        !error &&
+        schedule &&
+        templates.length > 0 && (
+          <div className="no-print">
+            <CoverageGaps
+              gaps={coverageGaps}
+              requiredHours={requiredHours}
+              scheduledHours={scheduledHours}
+            />
+          </div>
+        )}
 
       {isLoading && (
         <div className="flex justify-center py-20">
@@ -175,25 +220,27 @@ export default function SchedulesPage() {
       )}
 
       {!isLoading && !error && schedule && (
-        <WeeklyGrid
-          schedule={schedule}
-          employees={employees}
-          weekDays={weekDays}
-          onAddShift={(employeeId, dateStr) =>
-            setShiftModal({
-              defaultEmployeeId: employeeId,
-              defaultDate: dateStr,
-            })
-          }
-          onEditShift={(shift) => setShiftModal({ shift })}
-          onDeleteShift={(id) => setDeleteShiftId(id)}
-          onMoveShift={(shiftId, employeeId, date) =>
-            updateShift.mutate({
-              id: shiftId,
-              updates: { employee_id: employeeId, shift_date: date },
-            })
-          }
-        />
+        <div className="no-print">
+          <WeeklyGrid
+            schedule={schedule}
+            employees={filteredEmployees}
+            weekDays={weekDays}
+            onAddShift={(employeeId, dateStr) =>
+              setShiftModal({
+                defaultEmployeeId: employeeId,
+                defaultDate: dateStr,
+              })
+            }
+            onEditShift={(shift) => setShiftModal({ shift })}
+            onDeleteShift={(id) => setDeleteShiftId(id)}
+            onMoveShift={(shiftId, employeeId, date) =>
+              updateShift.mutate({
+                id: shiftId,
+                updates: { employee_id: employeeId, shift_date: date },
+              })
+            }
+          />
+        </div>
       )}
 
       {shiftModal && schedule && (
@@ -222,6 +269,39 @@ export default function SchedulesPage() {
         />
       )}
 
+      {generateConfirmOpen && (
+        <ConfirmModal
+          title="Regenerate schedule?"
+          description="This will replace the existing schedule for this week. Any manual edits will be lost."
+          confirmLabel="Regenerate"
+          isPending={generateSchedule.isPending}
+          onConfirm={() => {
+            generateSchedule.mutate({
+              restaurant_id: restaurant!.id,
+              week_start: weekStart,
+            });
+            setGenerateConfirmOpen(false);
+          }}
+          onCancel={() => setGenerateConfirmOpen(false)}
+        />
+      )}
+
+      {clearConfirmOpen && (
+        <ConfirmModal
+          title="Clear this week?"
+          description={`Remove all ${schedule?.shifts?.length ?? 0} shifts from ${weekLabel}. The schedule itself stays — you can start fresh or regenerate. This can't be undone.`}
+          confirmLabel="Clear schedule"
+          isPending={clearShifts.isPending}
+          onConfirm={() => {
+            const ids = (schedule?.shifts ?? []).map((s) => s.id);
+            clearShifts.mutate(ids, {
+              onSettled: () => setClearConfirmOpen(false),
+            });
+          }}
+          onCancel={() => setClearConfirmOpen(false)}
+        />
+      )}
+
       {analysisOpen && (
         <AnalysisModal
           data={analyzeSchedule.data}
@@ -232,6 +312,14 @@ export default function SchedulesPage() {
           onClose={() => setAnalysisOpen(false)}
         />
       )}
-    </>
+
+      {shareOpen && schedule && (
+        <ShareModal
+          scheduleId={schedule.id}
+          weekLabel={weekLabel}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
+    </div>
   );
 }

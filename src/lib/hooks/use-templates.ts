@@ -3,7 +3,12 @@ import { isAxiosError } from 'axios';
 import type { AxiosError } from 'axios';
 import { toast } from 'sonner';
 import { templatesApi } from '@/lib/api/templates';
-import type { SaveShiftTemplatesRequest, ShiftTemplateRecord } from '@/lib/types/template';
+import { tickOnboardStep } from '@/lib/utils/onboarding';
+import type {
+  SaveShiftTemplatesRequest,
+  ImportShiftTemplatesRequest,
+  ShiftTemplateRecord,
+} from '@/lib/types/template';
 
 export function useShiftTemplates(restaurantId: string | undefined) {
   return useQuery<ShiftTemplateRecord | null>({
@@ -28,9 +33,38 @@ export function useSaveShiftTemplates() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['shift-templates', variables.restaurant_id] });
       toast.success('Templates saved');
+      tickOnboardStep('templates');
     },
     onError: (error: AxiosError<{ detail?: string }>) => {
       toast.error(error.response?.data?.detail ?? 'Failed to save templates');
+    },
+  });
+}
+
+/**
+ * Import confirm — merges the given rows into the existing template set.
+ * See templatesApi.importConfirm for the backend contract.
+ */
+export function useImportShiftTemplates() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: ImportShiftTemplatesRequest) =>
+      templatesApi.importConfirm(payload),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['shift-templates', variables.restaurant_id],
+      });
+      toast.success(
+        `Imported ${variables.rows.length} template${variables.rows.length === 1 ? '' : 's'}`,
+      );
+      tickOnboardStep('templates');
+      return data;
+    },
+    onError: (error: AxiosError<{ detail?: string }>) => {
+      toast.error(
+        error.response?.data?.detail ?? 'Failed to import templates',
+      );
     },
   });
 }

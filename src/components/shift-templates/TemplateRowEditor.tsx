@@ -1,85 +1,158 @@
+import { useId } from "react";
 import { Trash2 } from "lucide-react";
 import { toHHMM, toHHMMSS } from "@/lib/utils/dates";
 import type { ShiftTemplateEntry, Role } from "@/lib/types/template";
 
-export const TEMPLATE_DAYS = [
-  { num: 1, short: "Mon", label: "Monday" },
-  { num: 2, short: "Tue", label: "Tuesday" },
-  { num: 3, short: "Wed", label: "Wednesday" },
-  { num: 4, short: "Thu", label: "Thursday" },
-  { num: 5, short: "Fri", label: "Friday" },
-  { num: 6, short: "Sat", label: "Saturday" },
-  { num: 7, short: "Sun", label: "Sunday" },
-];
+const ROLES: Role[] = ["Server", "Cook", "Host", "Manager"];
 
-export const ROLES: Role[] = ["Server", "Cook", "Host", "Manager"];
+/** Local row shape — the flat per-day entry + a client-side key. */
+export interface TemplateRow extends ShiftTemplateEntry {
+  _key: string;
+}
 
+export interface TemplateRowEditorProps {
+  row: TemplateRow;
+  onChange: (row: TemplateRow) => void;
+  onDelete: () => void;
+}
+
+/** Compact per-day row editor used by the setup / onboarding flow. */
 export function TemplateRowEditor({
-  entry,
-  onRemove,
+  row,
   onChange,
-}: {
-  entry: ShiftTemplateEntry;
-  onRemove: () => void;
-  onChange: (updated: ShiftTemplateEntry) => void;
-}) {
+  onDelete,
+}: TemplateRowEditorProps) {
+  const startId = useId();
+  const endId = useId();
+  const countId = useId();
+
   return (
-    <div className="flex items-center gap-2 py-2 border-b border-surface-highest last:border-0 flex-wrap">
-      <select
-        value={entry.day_of_week}
-        onChange={(e) => onChange({ ...entry, day_of_week: Number(e.target.value) })}
-        className="input-field py-1 px-2 text-[12px] w-[72px]"
-      >
-        {TEMPLATE_DAYS.map((d) => (
-          <option key={d.num} value={d.num}>{d.short}</option>
-        ))}
-      </select>
-
-      <select
-        value={entry.role}
-        onChange={(e) => onChange({ ...entry, role: e.target.value as Role })}
-        className="input-field py-1 px-2 text-[12px] w-[90px]"
-      >
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "10px 12px",
+        borderRadius: 12,
+        background: "var(--surface-highest)",
+      }}
+      className="group"
+    >
+      <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
         {ROLES.map((r) => (
-          <option key={r} value={r}>{r}</option>
+          <button
+            key={r}
+            type="button"
+            onClick={() => onChange({ ...row, role: r })}
+            style={{
+              padding: "5px 10px",
+              borderRadius: 8,
+              fontSize: 11,
+              fontWeight: 600,
+              background:
+                row.role === r ? "var(--surface-lowest)" : "transparent",
+              color:
+                row.role === r
+                  ? "var(--on-surface)"
+                  : "var(--on-surface-muted)",
+              boxShadow:
+                row.role === r
+                  ? "inset 0 0 0 1.5px var(--accent-fixed)"
+                  : "none",
+              border: "none",
+              cursor: "pointer",
+              transition: "all 0.14s",
+            }}
+          >
+            {r}
+          </button>
         ))}
-      </select>
-
-      <input
-        type="time"
-        value={toHHMM(entry.start_time)}
-        onChange={(e) => onChange({ ...entry, start_time: toHHMMSS(e.target.value) })}
-        className="input-field py-1 px-2 text-[12px] w-[88px]"
-      />
-      <span className="text-on-surface-faint text-[12px]">–</span>
-      <input
-        type="time"
-        value={toHHMM(entry.end_time)}
-        onChange={(e) => onChange({ ...entry, end_time: toHHMMSS(e.target.value) })}
-        className="input-field py-1 px-2 text-[12px] w-[88px]"
-      />
-
-      <div className="flex items-center gap-1 ml-auto">
-        <span className="label-md text-on-surface-muted" style={{ fontSize: 11 }}>×</span>
-        <input
-          type="number"
-          min={1}
-          max={20}
-          value={entry.count}
-          onChange={(e) =>
-            onChange({ ...entry, count: Math.max(1, Number(e.target.value)) })
-          }
-          className="input-field py-1 px-2 text-[12px] w-[52px]"
-        />
-        <button
-          type="button"
-          onClick={onRemove}
-          className="btn-icon btn-ghost ml-1"
-          aria-label="Remove template row"
-        >
-          <Trash2 size={13} />
-        </button>
       </div>
+
+      <div
+        style={{ width: 1, height: 20, background: "var(--hairline)", flexShrink: 0 }}
+      />
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
+        <label className="label-sm" htmlFor={startId} style={{ fontSize: 9 }}>
+          Start
+        </label>
+        <input
+          id={startId}
+          type="time"
+          className="input mono"
+          value={toHHMM(row.start_time)}
+          onChange={(e) =>
+            onChange({ ...row, start_time: toHHMMSS(e.target.value) })
+          }
+          style={{ padding: "4px 8px", fontSize: 12, width: 92 }}
+        />
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
+        <label className="label-sm" htmlFor={endId} style={{ fontSize: 9 }}>
+          End
+        </label>
+        <input
+          id={endId}
+          type="time"
+          className="input mono"
+          value={toHHMM(row.end_time)}
+          onChange={(e) =>
+            onChange({ ...row, end_time: toHHMMSS(e.target.value) })
+          }
+          style={{ padding: "4px 8px", fontSize: 12, width: 92 }}
+        />
+      </div>
+
+      <div
+        style={{ width: 1, height: 20, background: "var(--hairline)", flexShrink: 0 }}
+      />
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
+        <label className="label-sm" htmlFor={countId} style={{ fontSize: 9 }}>
+          Staff
+        </label>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <button
+            type="button"
+            onClick={() =>
+              onChange({ ...row, count: Math.max(1, row.count - 1) })
+            }
+            className="btn btn-icon btn-ghost"
+            style={{ width: 22, height: 22, fontSize: 14, lineHeight: 1 }}
+            aria-label="Decrease count"
+          >
+            −
+          </button>
+          <span
+            id={countId}
+            className="mono"
+            style={{ fontSize: 13, fontWeight: 600, width: 18, textAlign: "center" }}
+          >
+            {row.count}
+          </span>
+          <button
+            type="button"
+            onClick={() => onChange({ ...row, count: row.count + 1 })}
+            className="btn btn-icon btn-ghost"
+            style={{ width: 22, height: 22, fontSize: 14, lineHeight: 1 }}
+            aria-label="Increase count"
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={onDelete}
+        className="btn btn-icon btn-ghost"
+        style={{ marginLeft: "auto", flexShrink: 0 }}
+        aria-label="Remove slot"
+      >
+        <Trash2 size={14} />
+      </button>
     </div>
   );
 }
