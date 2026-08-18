@@ -1,7 +1,7 @@
 export interface Employee {
   id: string;
   name: string;
-  role: 'Server' | 'Cook' | 'Host' | 'Manager';
+  role: string;
   salary: number;
   max_hours_per_week: number;
   is_active: boolean;

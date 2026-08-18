@@ -18,6 +18,8 @@ import {
   useEmployees,
   useCreateEmployee,
 } from "@/lib/hooks/use-employees";
+import { useRoles, useSaveRoles } from "@/lib/hooks/use-roles";
+import { RolesEditor } from "@/components/settings/RolesEditor";
 import { supabase } from "@/lib/supabase";
 import { Avatar } from "@/components/ui/Avatar";
 import { BrandMark } from "@/components/ui/BrandMark";
@@ -50,13 +52,14 @@ const TIMEZONES = [
   { value: "Europe/Paris", label: "CET · Paris" },
 ];
 
-const ROLES = ["Server", "Cook", "Host", "Manager"] as const;
 const DEFAULT_RATES: Record<string, number> = {
   Server: 22,
   Cook: 24,
   Host: 19,
   Manager: 30,
 };
+
+const rateFor = (role: string) => DEFAULT_RATES[role] ?? 20;
 
 const AVAIL_PRESETS = [
   "Any time",
@@ -73,6 +76,9 @@ export default function SetupPage() {
   const { data: restaurant } = useRestaurant();
   const { data: employees = [] } = useEmployees(restaurant?.id);
   const createEmployee = useCreateEmployee();
+  const { data: rolesData } = useRoles(restaurant?.id);
+  const saveRoles = useSaveRoles(restaurant?.id);
+  const roles = rolesData?.roles ?? [];
 
   // Step lives in the URL (?step=0..2) so browser back/forward navigate
   // between steps and a refresh keeps you where you were. Router owns
@@ -116,7 +122,7 @@ export default function SetupPage() {
   // Step 2 · in-progress team member draft (before Add commits it via API)
   const [draft, setDraft] = useState<{
     name: string;
-    role: (typeof ROLES)[number];
+    role: string;
     rate: number;
     avail: (typeof AVAIL_PRESETS)[number];
   } | null>(null);
@@ -172,13 +178,15 @@ export default function SetupPage() {
     }
   }
 
-  const openDraft = () =>
+  const openDraft = () => {
+    const defaultRole = roles[0] ?? "Server";
     setDraft({
       name: "",
-      role: "Server",
-      rate: DEFAULT_RATES.Server,
+      role: defaultRole,
+      rate: rateFor(defaultRole),
       avail: "Any time",
     });
+  };
 
   const commitDraft = () => {
     if (!draft?.name.trim() || !restaurant?.id) return;
@@ -323,6 +331,9 @@ export default function SetupPage() {
                 openDraft={openDraft}
                 commitDraft={commitDraft}
                 isSubmitting={createEmployee.isPending}
+                roles={roles}
+                onRolesChange={(next) => saveRoles.mutate(next)}
+                isSavingRoles={saveRoles.isPending}
                 onRemove={() => {
                   /* delete not offered mid-onboarding to keep the flow clean */
                 }}
@@ -706,20 +717,23 @@ function StepStaff({
   openDraft,
   commitDraft,
   isSubmitting,
+  roles,
+  onRolesChange,
+  isSavingRoles,
   onContinue,
 }: {
   storeName: string;
   employees: Employee[];
   draft: {
     name: string;
-    role: (typeof ROLES)[number];
+    role: string;
     rate: number;
     avail: (typeof AVAIL_PRESETS)[number];
   } | null;
   setDraft: (
     d: {
       name: string;
-      role: (typeof ROLES)[number];
+      role: string;
       rate: number;
       avail: (typeof AVAIL_PRESETS)[number];
     } | null,
@@ -727,6 +741,9 @@ function StepStaff({
   openDraft: () => void;
   commitDraft: () => void;
   isSubmitting: boolean;
+  roles: string[];
+  onRolesChange: (roles: string[]) => void;
+  isSavingRoles: boolean;
   onRemove: (id: string) => void;
   onContinue: () => void;
 }) {
@@ -748,6 +765,35 @@ function StepStaff({
       >
         Add a few people to start. Availability is optional here — you can
         fine-tune it later from the Staff page.
+      </div>
+
+      <div
+        style={{
+          background: "var(--surface-lowest)",
+          borderRadius: "var(--r-xl)",
+          boxShadow: "inset 0 0 0 1px var(--hairline)",
+          padding: "14px 16px",
+          marginBottom: 14,
+        }}
+      >
+        <div className="label-md">Your roles</div>
+        <div
+          className="body-sm"
+          style={{
+            color: "var(--on-surface-muted)",
+            marginTop: 2,
+            marginBottom: 10,
+            fontSize: 12,
+          }}
+        >
+          Only roles listed here can be assigned when you add someone. Edit
+          any time from Settings.
+        </div>
+        <RolesEditorSection
+          value={roles}
+          onSave={onRolesChange}
+          isSaving={isSavingRoles}
+        />
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -827,7 +873,7 @@ function StepStaff({
                   className="input"
                   value={draft.role}
                   onChange={(e) => {
-                    const role = e.target.value as (typeof ROLES)[number];
+                    const role = e.target.value;
                     setDraft({
                       ...draft,
                       role,
@@ -835,7 +881,7 @@ function StepStaff({
                     });
                   }}
                 >
-                  {ROLES.map((r) => (
+                  {roles.map((r) => (
                     <option key={r} value={r}>
                       {r}
                     </option>
@@ -1081,6 +1127,43 @@ function StepTemplates({
       >
         Skip, I'll do this later
       </button>
+    </div>
+  );
+}
+
+/* ─── Onboarding roles section — local draft with explicit save ─── */
+
+function RolesEditorSection({
+  value,
+  onSave,
+  isSaving,
+}: {
+  value: string[];
+  onSave: (roles: string[]) => void;
+  isSaving: boolean;
+}) {
+  const [draft, setDraft] = useState<string[]>(value);
+  useEffect(() => setDraft(value), [value]);
+  const dirty =
+    draft.length !== value.length ||
+    draft.some((r, i) => r !== value[i]);
+
+  return (
+    <div>
+      <RolesEditor value={draft} onChange={setDraft} hideSaveButton />
+      {dirty && (
+        <div style={{ marginTop: 10, display: "flex", justifyContent: "flex-end" }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={isSaving || draft.length === 0}
+            onClick={() => onSave(draft)}
+            style={{ fontSize: 12.5 }}
+          >
+            {isSaving ? "Saving…" : "Save roles"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

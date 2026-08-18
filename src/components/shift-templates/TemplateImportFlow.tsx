@@ -11,7 +11,11 @@ import {
 import { toast } from "sonner";
 import { useRestaurant } from "@/lib/hooks/use-restaurant";
 import { useEmployees } from "@/lib/hooks/use-employees";
-import { useImportShiftTemplates } from "@/lib/hooks/use-templates";
+import {
+  useImportShiftTemplates,
+  useSaveShiftTemplates,
+  useShiftTemplates,
+} from "@/lib/hooks/use-templates";
 import { ImportStepDots } from "@/components/shift-templates/ImportStepDots";
 import {
   parseScheduleFile,
@@ -81,7 +85,16 @@ export function TemplateImportFlow({
 }: TemplateImportFlowProps) {
   const { data: restaurant } = useRestaurant();
   const { data: employees = [] } = useEmployees(restaurant?.id);
+  const { data: existingRecord } = useShiftTemplates(restaurant?.id);
   const importConfirm = useImportShiftTemplates();
+  const saveTemplates = useSaveShiftTemplates();
+  const [pendingChoice, setPendingChoice] = useState(false);
+  const existingTemplates = existingRecord?.templates ?? [];
+  const existingCount = existingTemplates.length;
+  const existingKeys = useMemo(
+    () => new Set(existingTemplates.map(templateKey)),
+    [existingTemplates],
+  );
 
   const [step, setStep] = useState<Step>(0);
   const [source, setSource] = useState<"sheet" | "photo">("sheet");
@@ -115,6 +128,17 @@ export function TemplateImportFlow({
   const goPhoto = async (file: File) => {
     setSource("photo");
     setFileName(file.name);
+    // Free-tier Groq caps us around ~60 shift entries per image; a photo
+    // covering more than a single week (say a 2-week board) will blow the
+    // TPM budget and the request 502s. We can't measure shift count client-
+    // side, but very large files are a strong proxy — warn early so the
+    // user can crop before we spend the round trip.
+    if (file.size > 4 * 1024 * 1024) {
+      toast(
+        "Large photo — if it covers more than one week the reader may time out. Try cropping to a single week for best results.",
+        { icon: "⚠️" },
+      );
+    }
     setStep(1);
     try {
       const response = await templatesApi.parseImage(file);
@@ -141,7 +165,7 @@ export function TemplateImportFlow({
         );
       } else if (status === 502) {
         toast.error(
-          "Couldn't read that photo — try a clearer image or a spreadsheet.",
+          "Couldn't read that photo. If it covers more than one week, try cropping to a single week — the reader has a per-image limit.",
         );
       } else if (status === 400) {
         toast.error("That file doesn't look like an image.");
@@ -167,9 +191,43 @@ export function TemplateImportFlow({
       toast.error("Nothing valid to import — fix the flagged rows first.");
       return;
     }
+    // First-time import (no existing templates) just merges — no dialog to
+    // show since there's nothing to replace.
+    if (existingCount === 0) {
+      importConfirm.mutate(
+        { restaurant_id: restaurant.id, rows: templates },
+        { onSuccess: () => onDone(templates.length) },
+      );
+      return;
+    }
+    setPendingChoice(true);
+  };
+
+  const commitMerge = () => {
+    if (!restaurant?.id) return;
+    const templates = groupIntoTemplates(preview);
     importConfirm.mutate(
       { restaurant_id: restaurant.id, rows: templates },
-      { onSuccess: () => onDone(templates.length) },
+      {
+        onSuccess: () => {
+          setPendingChoice(false);
+          onDone(templates.length);
+        },
+      },
+    );
+  };
+
+  const commitReplace = () => {
+    if (!restaurant?.id) return;
+    const templates = groupIntoTemplates(preview);
+    saveTemplates.mutate(
+      { restaurant_id: restaurant.id, templates },
+      {
+        onSuccess: () => {
+          setPendingChoice(false);
+          onDone(templates.length);
+        },
+      },
     );
   };
 
@@ -210,10 +268,223 @@ export function TemplateImportFlow({
             onChange={setPreview}
             onBack={restart}
             onSave={handleConfirm}
-            isSaving={importConfirm.isPending}
+            isSaving={importConfirm.isPending || saveTemplates.isPending}
             compact={compact}
           />
         )}
+      </div>
+      {pendingChoice && (
+        <ImportChoiceDialog
+          existingCount={existingCount}
+          incoming={groupIntoTemplates(preview)}
+          existingKeys={existingKeys}
+          isMerging={importConfirm.isPending}
+          isReplacing={saveTemplates.isPending}
+          onMerge={commitMerge}
+          onReplace={commitReplace}
+          onCancel={() => setPendingChoice(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Identity key for a template. Two templates that agree on (day, start, end,
+ * role) are the same slot — count differences are edits, not new templates.
+ * Kept out of the shared utils module because this is import-flow-specific
+ * heuristic: on the server, templates are pure rows and appending duplicates
+ * is legal; we're the ones deciding to warn about it.
+ */
+function templateKey(t: {
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  role: string;
+}): string {
+  return `${t.day_of_week}|${t.start_time}|${t.end_time}|${t.role}`;
+}
+
+function ImportChoiceDialog({
+  existingCount,
+  incoming,
+  existingKeys,
+  isMerging,
+  isReplacing,
+  onMerge,
+  onReplace,
+  onCancel,
+}: {
+  existingCount: number;
+  incoming: Array<{
+    day_of_week: number;
+    start_time: string;
+    end_time: string;
+    role: string;
+    count: number;
+  }>;
+  existingKeys: Set<string>;
+  isMerging: boolean;
+  isReplacing: boolean;
+  onMerge: () => void;
+  onReplace: () => void;
+  onCancel: () => void;
+}) {
+  const incomingCount = incoming.length;
+  const dupeCount = useMemo(
+    () => incoming.filter((t) => existingKeys.has(templateKey(t))).length,
+    [incoming, existingKeys],
+  );
+  const newCount = incomingCount - dupeCount;
+  const allDupes = dupeCount === incomingCount && incomingCount > 0;
+  const busy = isMerging || isReplacing;
+  return (
+    <div className="modal-overlay" onClick={busy ? undefined : onCancel}>
+      <div
+        className="modal-panel"
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: 480 }}
+      >
+        <div style={{ marginBottom: 14 }}>
+          <div className="label-md">Before we save</div>
+          <div className="headline-md" style={{ marginTop: 4 }}>
+            {allDupes
+              ? "This import looks redundant"
+              : `You already have ${existingCount} template${existingCount === 1 ? "" : "s"}`}
+          </div>
+          <div
+            className="body-sm"
+            style={{
+              color: "var(--on-surface-muted)",
+              marginTop: 8,
+            }}
+          >
+            {allDupes ? (
+              <>
+                All {incomingCount} template{incomingCount === 1 ? "" : "s"}{" "}
+                in this import match one you already have (same day, time and
+                role). Adding them again would create duplicate rows in your
+                template list.
+              </>
+            ) : dupeCount > 0 ? (
+              <>
+                <strong>{newCount}</strong> new · <strong>{dupeCount}</strong>{" "}
+                already exist{dupeCount === 1 ? "s" : ""} with the same day,
+                time and role. Adding will create duplicates for those{" "}
+                {dupeCount}; replacing swaps everything.
+              </>
+            ) : (
+              <>
+                The {incomingCount} template{incomingCount === 1 ? "" : "s"}{" "}
+                from this import can either be added to your existing set or
+                replace everything you have today.
+              </>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <button
+            type="button"
+            onClick={onMerge}
+            disabled={busy}
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 12,
+              textAlign: "left",
+              padding: "14px 16px",
+              borderRadius: 12,
+              background: "var(--surface-lowest)",
+              boxShadow: "inset 0 0 0 1px var(--hairline)",
+              border: "none",
+              cursor: busy ? "wait" : "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            <div style={{ flex: 1 }}>
+              <div className="title-sm" style={{ fontSize: 13.5 }}>
+                {allDupes
+                  ? "Add duplicates anyway"
+                  : dupeCount > 0
+                    ? `Add all ${incomingCount} (creates ${dupeCount} duplicate${dupeCount === 1 ? "" : "s"})`
+                    : "Add to existing"}
+              </div>
+              <div
+                className="body-sm"
+                style={{
+                  fontSize: 12,
+                  color: "var(--on-surface-muted)",
+                  marginTop: 2,
+                }}
+              >
+                {allDupes
+                  ? "Not recommended — creates identical rows in your template list."
+                  : `Keep all ${existingCount} — you'll end up with ${existingCount + incomingCount} templates.`}
+              </div>
+            </div>
+            {isMerging && (
+              <span className="label-sm" style={{ fontSize: 10 }}>
+                Adding…
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={onReplace}
+            disabled={busy}
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 12,
+              textAlign: "left",
+              padding: "14px 16px",
+              borderRadius: 12,
+              background: "var(--surface-lowest)",
+              boxShadow: "inset 0 0 0 1.5px var(--tertiary-fixed-dim, #b45309)",
+              border: "none",
+              cursor: busy ? "wait" : "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            <div style={{ flex: 1 }}>
+              <div className="title-sm" style={{ fontSize: 13.5 }}>
+                Replace all existing templates
+              </div>
+              <div
+                className="body-sm"
+                style={{
+                  fontSize: 12,
+                  color: "var(--on-surface-muted)",
+                  marginTop: 2,
+                }}
+              >
+                Wipe the current {existingCount} and install just these{" "}
+                {incomingCount}. Use this when the imported schedule is your
+                new source of truth.
+              </div>
+            </div>
+            {isReplacing && (
+              <span className="label-sm" style={{ fontSize: 10 }}>
+                Replacing…
+              </span>
+            )}
+          </button>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
+          <button
+            type="button"
+            className={allDupes ? "btn btn-primary" : "btn btn-ghost"}
+            onClick={onCancel}
+            disabled={busy}
+          >
+            {allDupes ? "Cancel import" : "Cancel"}
+          </button>
+        </div>
       </div>
     </div>
   );

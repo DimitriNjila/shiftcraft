@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   CalendarDays,
+  CalendarOff,
   Copy,
   Users,
   Settings as SettingsIcon,
@@ -26,6 +27,7 @@ const NAV_ITEMS: NavDef[] = [
   { to: "/schedules", icon: CalendarDays, label: "Schedule" },
   { to: "/templates", icon: Copy, label: "Templates", isNew: true },
   { to: "/employees", icon: Users, label: "Staff" },
+  { to: "/time-off", icon: CalendarOff, label: "Time off" },
   { to: "/settings", icon: SettingsIcon, label: "Settings" },
 ];
 

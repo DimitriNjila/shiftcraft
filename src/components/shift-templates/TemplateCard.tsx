@@ -1,4 +1,5 @@
-import { ChevronRight, Clock } from "lucide-react";
+import { useState } from "react";
+import { ChevronRight, Clock, Trash2 } from "lucide-react";
 import { formatShiftTime } from "@/lib/utils/dates";
 import {
   autoName,
@@ -10,16 +11,26 @@ import { roleHue } from "@/lib/utils/roles";
 export function TemplateCard({
   group,
   onEdit,
+  onDelete,
 }: {
   group: TemplateGroup;
   onEdit: () => void;
+  onDelete?: (id: string) => void;
 }) {
+  const [confirming, setConfirming] = useState(false);
   const hue = roleHue(group.role);
   const name = autoName(group);
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onEdit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onEdit();
+        }
+      }}
       style={{
         background: "var(--surface-lowest)",
         borderRadius: "var(--r-lg)",
@@ -103,7 +114,58 @@ export function TemplateCard({
         {group.role}
         {group.count > 1 ? ` × ${group.count}` : ""}
       </span>
+      {onDelete && (
+        confirming ? (
+          <span
+            style={{ display: "inline-flex", gap: 4, alignItems: "center" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{
+                fontSize: 11,
+                padding: "4px 8px",
+                background: "var(--tertiary-fixed-dim, #b91c1c)",
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(group.id);
+                setConfirming(false);
+              }}
+              title="Confirm delete"
+            >
+              Delete
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ fontSize: 11, padding: "4px 6px" }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirming(false);
+              }}
+            >
+              Cancel
+            </button>
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-ghost btn-icon"
+            aria-label="Delete template"
+            title="Delete template"
+            onClick={(e) => {
+              e.stopPropagation();
+              setConfirming(true);
+            }}
+            style={{ color: "var(--on-surface-muted)" }}
+          >
+            <Trash2 size={14} />
+          </button>
+        )
+      )}
       <ChevronRight size={14} style={{ color: "var(--on-surface-faint)" }} />
-    </button>
+    </div>
   );
 }

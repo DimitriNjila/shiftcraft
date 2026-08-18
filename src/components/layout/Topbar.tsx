@@ -1,6 +1,10 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Search, Moon, Sun, Bell } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { usePageMetaValue } from "./page-meta";
+import { useRestaurant } from "@/lib/hooks/use-restaurant";
+import { useEmployees } from "@/lib/hooks/use-employees";
+import { Avatar } from "@/components/ui/Avatar";
 
 function useTheme(): [string, (t: string) => void] {
   const [theme, setThemeState] = useState<string>(() =>
@@ -87,46 +91,7 @@ export function Topbar() {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "6px 10px",
-            background: "var(--surface-lowest)",
-            boxShadow: "inset 0 0 0 1px var(--hairline-strong)",
-            borderRadius: 8,
-            minWidth: 210,
-            color: "var(--on-surface-faint)",
-          }}
-        >
-          <Search size={14} />
-          <input
-            placeholder="Search staff, shifts, requests…"
-            style={{
-              background: "transparent",
-              border: "none",
-              outline: "none",
-              flex: 1,
-              fontSize: 12.5,
-              color: "var(--on-surface)",
-              fontFamily: "inherit",
-              minWidth: 0,
-            }}
-          />
-          <kbd
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 10,
-              padding: "1px 5px",
-              background: "var(--surface-high)",
-              borderRadius: 4,
-              color: "var(--on-surface-muted)",
-            }}
-          >
-            ⌘K
-          </kbd>
-        </label>
+        <StaffSearch />
 
         <button
           className="btn btn-icon btn-ghost"
@@ -160,5 +125,223 @@ export function Topbar() {
         {actions}
       </div>
     </header>
+  );
+}
+
+/**
+ * Global staff search — matches employees by name (case-insensitive) and
+ * navigates to their detail page. Cmd/Ctrl-K focuses the input; ↑↓ move
+ * through results; Enter jumps to the highlighted one; Esc closes.
+ */
+function StaffSearch() {
+  const navigate = useNavigate();
+  const { data: restaurant } = useRestaurant();
+  const { data: employees = [] } = useEmployees(restaurant?.id);
+
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [highlight, setHighlight] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [] as typeof employees;
+    return employees
+      .filter((e) => e.name.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [employees, query]);
+
+  useEffect(() => {
+    setHighlight(0);
+  }, [query]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (!wrapperRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [open]);
+
+  const pick = (id: string) => {
+    setOpen(false);
+    setQuery("");
+    inputRef.current?.blur();
+    navigate(`/employees/${id}`);
+  };
+
+  const onInputKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      setOpen(false);
+      inputRef.current?.blur();
+      return;
+    }
+    if (!results.length) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlight((h) => (h + 1) % results.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlight((h) => (h - 1 + results.length) % results.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const target = results[highlight];
+      if (target) pick(target.id);
+    }
+  };
+
+  return (
+    <div
+      ref={wrapperRef}
+      style={{ position: "relative", minWidth: 210 }}
+    >
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "6px 10px",
+          background: "var(--surface-lowest)",
+          boxShadow: "inset 0 0 0 1px var(--hairline-strong)",
+          borderRadius: 8,
+          color: "var(--on-surface-faint)",
+        }}
+      >
+        <Search size={14} />
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={onInputKey}
+          placeholder="Search staff by name…"
+          aria-label="Search staff"
+          style={{
+            background: "transparent",
+            border: "none",
+            outline: "none",
+            flex: 1,
+            fontSize: 12.5,
+            color: "var(--on-surface)",
+            fontFamily: "inherit",
+            minWidth: 0,
+          }}
+        />
+        <kbd
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            padding: "1px 5px",
+            background: "var(--surface-high)",
+            borderRadius: 4,
+            color: "var(--on-surface-muted)",
+          }}
+        >
+          ⌘K
+        </kbd>
+      </label>
+
+      {open && query.trim() && (
+        <div
+          role="listbox"
+          style={{
+            position: "absolute",
+            top: "calc(100% + 6px)",
+            left: 0,
+            right: 0,
+            zIndex: 50,
+            background: "var(--surface-lowest)",
+            borderRadius: 10,
+            boxShadow: "var(--shadow-lift, 0 10px 30px rgba(0,0,0,0.15))",
+            border: "1px solid var(--hairline)",
+            padding: 4,
+            maxHeight: 320,
+            overflowY: "auto",
+          }}
+        >
+          {results.length === 0 ? (
+            <div
+              style={{
+                padding: "14px 12px",
+                fontSize: 12,
+                color: "var(--on-surface-muted)",
+                textAlign: "center",
+              }}
+            >
+              No staff match “{query}”
+            </div>
+          ) : (
+            results.map((emp, i) => {
+              const isActive = i === highlight;
+              return (
+                <button
+                  key={emp.id}
+                  type="button"
+                  role="option"
+                  aria-selected={isActive}
+                  onMouseEnter={() => setHighlight(i)}
+                  onClick={() => pick(emp.id)}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "8px 10px",
+                    borderRadius: 7,
+                    background: isActive ? "var(--surface-high)" : "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  <Avatar name={emp.name} size={26} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      className="title-sm"
+                      style={{
+                        fontSize: 12.5,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {emp.name}
+                    </div>
+                    <div
+                      className="body-sm"
+                      style={{
+                        fontSize: 11,
+                        color: "var(--on-surface-muted)",
+                      }}
+                    >
+                      {emp.role}
+                      {!emp.is_active ? " · inactive" : ""}
+                    </div>
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+      )}
+    </div>
   );
 }

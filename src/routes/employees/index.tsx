@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
-import { Plus, Search, Users } from "lucide-react";
+import { AlertTriangle, Plus, Search, Users } from "lucide-react";
 import { useRestaurant } from "@/lib/hooks/use-restaurant";
+import { useRoleOptions } from "@/lib/hooks/use-roles";
 import {
   useEmployees,
   useCreateEmployee,
@@ -24,7 +25,6 @@ import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { usePageMeta } from "@/components/layout/page-meta";
 import type { Employee } from "@/lib/types/employee";
 
-const ROLE_OPTIONS = ["all", "Server", "Cook", "Host", "Manager"] as const;
 type Sort = "name" | "hours" | "rate";
 
 export default function EmployeesPage() {
@@ -41,6 +41,16 @@ export default function EmployeesPage() {
   const updateEmployee = useUpdateEmployee();
   const deleteEmployee = useDeleteEmployee();
   const deactivateEmployee = useDeactivateEmployee();
+  const roles = useRoleOptions(restaurantId);
+  const roleOptions = useMemo(() => ["all", ...roles], [roles]);
+
+  const orphanedEmployees = useMemo(
+    () =>
+      (employees ?? []).filter(
+        (e) => e.is_active && e.role && !roles.includes(e.role),
+      ),
+    [employees, roles],
+  );
 
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -202,6 +212,38 @@ export default function EmployeesPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      {orphanedEmployees.length > 0 && (
+        <div
+          role="status"
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 10,
+            padding: "10px 14px",
+            background: "var(--warning-container, #fef3c7)",
+            color: "var(--warning, #b45309)",
+            borderRadius: "var(--r-xl)",
+            fontSize: 13,
+          }}
+        >
+          <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 2 }} />
+          <div>
+            <strong>
+              {orphanedEmployees.length}{" "}
+              {orphanedEmployees.length === 1 ? "employee has" : "employees have"}
+            </strong>{" "}
+            a role no longer in your roles list
+            {orphanedEmployees.length <= 4
+              ? ` (${orphanedEmployees.map((e) => `${e.name} — ${e.role}`).join(", ")}).`
+              : "."}{" "}
+            Editing their role will fail until you add the role back in{" "}
+            <a href="/settings" style={{ color: "inherit", textDecoration: "underline" }}>
+              Settings
+            </a>{" "}
+            or reassign them.
+          </div>
+        </div>
+      )}
       {/* KPI strip */}
       <div
         style={{
@@ -294,7 +336,7 @@ export default function EmployeesPage() {
             background: "var(--surface-lowest)",
           }}
         >
-          {ROLE_OPTIONS.map((r) => (
+          {roleOptions.map((r) => (
             <option key={r} value={r}>
               {r === "all" ? "All roles" : r}
             </option>

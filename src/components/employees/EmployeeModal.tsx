@@ -1,9 +1,7 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { X } from "lucide-react";
 import type { Employee } from "@/lib/types/employee";
-
-const ROLES = ["Server", "Cook", "Host", "Manager"] as const;
-type Role = (typeof ROLES)[number];
+import { useRoleOptions } from "@/lib/hooks/use-roles";
 
 export interface EmployeeModalProps {
   /** When provided the modal is in edit mode; otherwise create mode. */
@@ -12,7 +10,7 @@ export interface EmployeeModalProps {
   isPending: boolean;
   onSubmit: (data: {
     name: string;
-    role: Role;
+    role: string;
     restaurantId: string;
     salary: number;
     maxHoursPerWeek: number;
@@ -28,8 +26,14 @@ export function EmployeeModal({
   onClose,
 }: EmployeeModalProps) {
   const isEditing = !!employee;
+  const roles = useRoleOptions(restaurantId);
+  const initialRole =
+    employee?.role && roles.includes(employee.role)
+      ? employee.role
+      : (employee?.role ?? roles[0] ?? "");
+
   const [name, setName] = useState(employee?.name ?? "");
-  const [role, setRole] = useState<Role>((employee?.role as Role) ?? "Server");
+  const [role, setRole] = useState<string>(initialRole);
   const [salary, setSalary] = useState(employee?.salary ?? 30000);
   const [maxHoursPerWeek, setMaxHoursPerWeek] = useState(
     employee?.max_hours_per_week ?? 40,
@@ -38,16 +42,31 @@ export function EmployeeModal({
 
   useEffect(() => {
     setName(employee?.name ?? "");
-    setRole((employee?.role as Role) ?? "Server");
+    setRole(
+      employee?.role && roles.includes(employee.role)
+        ? employee.role
+        : (employee?.role ?? roles[0] ?? ""),
+    );
     setSalary(employee?.salary ?? 30000);
     setMaxHoursPerWeek(employee?.max_hours_per_week ?? 40);
     setError("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [employee]);
+
+  // Employee's role isn't in the current restaurant list — the owner
+  // removed it after this person was hired. Backend will 400 on any
+  // role-touching PATCH until they pick a valid one.
+  const roleMissing =
+    !!employee && !!employee.role && !roles.includes(employee.role);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       setError("Name is required");
+      return;
+    }
+    if (!role) {
+      setError("Role is required");
       return;
     }
     setError("");
@@ -116,8 +135,21 @@ export function EmployeeModal({
           {/* Role */}
           <div>
             <span className="field-label">Role</span>
+            {roleMissing && (
+              <p
+                className="body-sm"
+                style={{
+                  color: "var(--warning, #b45309)",
+                  marginTop: 4,
+                  marginBottom: 2,
+                }}
+              >
+                “{employee!.role}” is no longer in your roles list — pick a
+                replacement to save changes.
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-1.5 mt-1.5">
-              {ROLES.map((r) => (
+              {roles.map((r) => (
                 <button
                   type="button"
                   key={r}
@@ -147,7 +179,7 @@ export function EmployeeModal({
               className="input-field"
               placeholder="e.g. 30000"
               min="0"
-              step="0.5"  
+              step="0.5"
             />
           </div>
 

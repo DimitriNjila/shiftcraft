@@ -1,5 +1,5 @@
 import Papa from "papaparse";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 /**
  * A single parsed shift row — the intermediate shape before we resolve
@@ -46,6 +46,31 @@ export async function parseScheduleFile(
   throw new Error("Unsupported file type. Please upload a .csv or .xlsx.");
 }
 
+/** Coerce an ExcelJS cell value (which can be a string, number, Date,
+ *  hyperlink, formula-result, or rich-text object) into the plain-text
+ *  form the row normalizer expects. Preserves numeric zeros. */
+function cellToString(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "object") {
+    const v = value as {
+      text?: string;
+      result?: unknown;
+      richText?: Array<{ text?: string }>;
+      hyperlink?: string;
+    };
+    if (typeof v.text === "string") return v.text;
+    if (v.result != null) return cellToString(v.result);
+    if (Array.isArray(v.richText)) {
+      return v.richText.map((rt) => rt.text ?? "").join("");
+    }
+    if (typeof v.hyperlink === "string") return v.hyperlink;
+  }
+  return String(value);
+}
+
 function parseCsv(text: string): ParseSourceResult {
   const parsed = Papa.parse<string[]>(text.trim(), {
     header: false,
@@ -54,16 +79,28 @@ function parseCsv(text: string): ParseSourceResult {
   return normalizeRows(parsed.data);
 }
 
-function parseXlsx(buffer: ArrayBuffer): ParseSourceResult {
-  const workbook = XLSX.read(buffer, { type: "array" });
-  const firstSheet = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[firstSheet];
-  const rows = XLSX.utils.sheet_to_json<string[]>(sheet, {
-    header: 1,
-    raw: false,
-    defval: "",
-  });
-  return normalizeRows(rows.map((r) => r.map((c) => String(c ?? ""))));
+async function parseXlsx(buffer: ArrayBuffer): Promise<ParseSourceResult> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  const sheet = workbook.worksheets[0];
+  if (!sheet) return { rows: [], columns: [] };
+
+  // ExcelJS gives us a 1-indexed sparse array from getSheetValues(). Flatten
+  // to a dense 0-indexed grid so downstream code (which came from the
+  // XLSX.utils.sheet_to_json output) doesn't have to change.
+  const raw = sheet.getSheetValues() as unknown[][];
+  const rows: string[][] = [];
+  for (let r = 1; r < raw.length; r++) {
+    const rowVals = (raw[r] ?? []) as unknown[];
+    const dense: string[] = [];
+    for (let c = 1; c < rowVals.length; c++) {
+      dense[c - 1] = cellToString(rowVals[c]);
+    }
+    // Pad short rows so column indices align across the sheet.
+    for (let i = 0; i < dense.length; i++) if (dense[i] == null) dense[i] = "";
+    rows.push(dense);
+  }
+  return normalizeRows(rows);
 }
 
 /* ─── Format normalization ───────────────────────────────────── */

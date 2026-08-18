@@ -1,10 +1,12 @@
 import { type FormEvent, useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Moon, Sun, ArrowRight, MapPin, Copy, Palette, CreditCard } from "lucide-react";
+import { Moon, Sun, ArrowRight, MapPin, Copy, Palette, CreditCard, Tag } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRestaurant } from "@/lib/hooks/use-restaurant";
+import { useRoles, useSaveRoles } from "@/lib/hooks/use-roles";
+import { RolesEditor } from "@/components/settings/RolesEditor";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { supabase } from "@/lib/supabase";
 import { usePageMeta } from "@/components/layout/page-meta";
@@ -30,10 +32,11 @@ const TIMEZONES = [
   { value: "Australia/Melbourne", label: "Australian Eastern Time – Melbourne" },
 ];
 
-type Tab = "restaurant" | "templates" | "appearance" | "billing";
+type Tab = "restaurant" | "roles" | "templates" | "appearance" | "billing";
 
 const TABS: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
   { id: "restaurant", label: "Restaurant info", icon: MapPin },
+  { id: "roles", label: "Roles", icon: Tag },
   { id: "templates", label: "Shift templates", icon: Copy },
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "billing", label: "Billing", icon: CreditCard },
@@ -96,6 +99,9 @@ export default function SettingsPage() {
       <div style={{ minWidth: 0, maxWidth: 720 }}>
         {tab === "restaurant" && (
           <RestaurantPanel restaurant={restaurant ?? undefined} />
+        )}
+        {tab === "roles" && (
+          <RolesPanel restaurantId={restaurant?.id} />
         )}
         {tab === "templates" && <TemplatesPanel />}
         {tab === "appearance" && <AppearancePanel />}
@@ -202,6 +208,49 @@ function RestaurantPanel({
           </button>
         </div>
       </form>
+    </PanelHeader>
+  );
+}
+
+/* ─── Roles panel ─── */
+
+function RolesPanel({ restaurantId }: { restaurantId: string | undefined }) {
+  const { data, isLoading } = useRoles(restaurantId);
+  const saveRoles = useSaveRoles(restaurantId);
+  const [draft, setDraft] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (data?.roles) setDraft(data.roles);
+  }, [data?.roles]);
+
+  return (
+    <PanelHeader label="Settings / Roles" title="Roles">
+      <div className="section" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div>
+          <div className="title-md">Roles you assign to your team</div>
+          <div
+            className="body-sm"
+            style={{ color: "var(--on-surface-muted)", marginTop: 4, maxWidth: 460 }}
+          >
+            These options fill the role dropdown when you add or edit an
+            employee. Removing a role won't touch anyone already assigned to
+            it, but you'll need to reassign them before editing their role
+            again.
+          </div>
+        </div>
+        {isLoading || !restaurantId ? (
+          <div style={{ padding: 20 }}>
+            <LoadingSpinner size={20} />
+          </div>
+        ) : (
+          <RolesEditor
+            value={draft}
+            onChange={setDraft}
+            isSaving={saveRoles.isPending}
+            onSave={(next) => saveRoles.mutate(next)}
+          />
+        )}
+      </div>
     </PanelHeader>
   );
 }

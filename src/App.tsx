@@ -29,6 +29,7 @@ const SharedSchedulePage = lazy(() => import("@/routes/shared/index"));
 const PrintPreviewPage = lazy(() => import("@/routes/schedules/print"));
 const ImportTemplatesPage = lazy(() => import("@/routes/import/index"));
 const EmployeeDetailPage = lazy(() => import("@/routes/employees/detail"));
+const TimeOffPage = lazy(() => import("@/routes/time-off/index"));
 
 function PageFallback() {
   return (
@@ -110,6 +111,7 @@ export default function App() {
                       path="/templates/import"
                       element={<ImportTemplatesPage />}
                     />
+                    <Route path="/time-off" element={<TimeOffPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
                   </Route>
                 </Route>

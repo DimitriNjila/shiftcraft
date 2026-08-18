@@ -19,6 +19,7 @@ import { useAvailability } from "@/lib/hooks/use-availability";
 import { useSchedules, useScheduleDetail } from "@/lib/hooks/use-schedules";
 import { Avatar } from "@/components/ui/Avatar";
 import { EmployeeModal } from "@/components/employees/EmployeeModal";
+import { TimeOffPanel } from "@/components/employees/TimeOffPanel";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { usePageMeta } from "@/components/layout/page-meta";
 import {
@@ -205,7 +206,7 @@ export default function EmployeeDetailPage() {
       {tab === "overview" && <OverviewTab employee={employee} />}
       {tab === "schedule" && <ScheduleTab employee={employee} />}
       {tab === "availability" && <AvailabilityTab employee={employee} />}
-      {tab === "timeoff" && <ComingSoon label="Time off" />}
+      {tab === "timeoff" && <TimeOffPanel employee={employee} />}
       {tab === "documents" && <ComingSoon label="Documents" />}
 
       {editOpen && restaurant?.id && (

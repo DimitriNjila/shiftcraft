@@ -187,6 +187,7 @@ export default function TemplatesPage() {
                   key={t.id}
                   group={t}
                   onEdit={() => setModal(t)}
+                  onDelete={remove}
                 />
               ))}
             </div>
